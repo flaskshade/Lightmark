@@ -630,10 +630,10 @@ struct EditModeButton: View {
                 KbdBadge(text: "⌘E")
             }
             .fixedSize()
-            .padding(.horizontal, 8)
-            .frame(height: 26)
+            .padding(.horizontal, 7.5)
+            .frame(height: 31)
             .background(
-                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                RoundedRectangle(cornerRadius: 6.5, style: .continuous)
                     .fill(isHovering ? Color(nsColor: .quaternaryLabelColor).opacity(0.60) : Color.clear)
             )
             .contentShape(Rectangle())
