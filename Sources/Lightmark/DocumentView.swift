@@ -118,7 +118,7 @@ struct DocumentView: View {
             // Top bar header overlay
             ZStack {
                 DocumentTabBar(tabs: tabs, fallbackTitle: documentTitle)
-                    .padding(.trailing, 72)
+                    .padding(.trailing, 108)
                     .opacity(showsDocumentTabs ? 1 : 0)
                     .allowsHitTesting(showsDocumentTabs)
                     .accessibilityHidden(!showsDocumentTabs)

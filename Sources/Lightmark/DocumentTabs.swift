@@ -386,6 +386,51 @@ private struct TabScrollViewConfigurator: NSViewRepresentable {
     }
 }
 
+private struct GenerousHoverTracker: NSViewRepresentable {
+    let onHoverChanged: (Bool) -> Void
+
+    func makeNSView(context: Context) -> GenerousTrackingNSView {
+        let view = GenerousTrackingNSView()
+        view.onHoverChanged = onHoverChanged
+        return view
+    }
+
+    func updateNSView(_ nsView: GenerousTrackingNSView, context: Context) {
+        nsView.onHoverChanged = onHoverChanged
+    }
+}
+
+private final class GenerousTrackingNSView: NSView {
+    var onHoverChanged: ((Bool) -> Void)?
+    private var trackingArea: NSTrackingArea?
+
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        if let trackingArea {
+            removeTrackingArea(trackingArea)
+        }
+        let options: NSTrackingArea.Options = [
+            .mouseEnteredAndExited,
+            .mouseMoved,
+            .activeInKeyWindow,
+            .inVisibleRect
+        ]
+        let newArea = NSTrackingArea(rect: bounds, options: options, owner: self, userInfo: nil)
+        addTrackingArea(newArea)
+        trackingArea = newArea
+    }
+
+    override func mouseEntered(with event: NSEvent) {
+        onHoverChanged?(true)
+    }
+
+    override func mouseExited(with event: NSEvent) {
+        onHoverChanged?(false)
+    }
+
+    override func hitTest(_ point: NSPoint) -> NSView? { nil }
+}
+
 @MainActor
 final class TabScrollController: ObservableObject {
     weak var scrollView: NSScrollView?
@@ -698,6 +743,15 @@ struct DocumentTabBar: View {
         .padding(.leading, 88)
         .padding(.trailing, 14)
         .frame(height: 52)
+        .background {
+            GenerousHoverTracker { hovering in
+                withAnimation(.easeInOut(duration: 0.20)) {
+                    isTabBarHovered = hovering
+                }
+            }
+            .frame(height: 90)
+            .frame(maxHeight: .infinity, alignment: .top)
+        }
         .contentShape(Rectangle())
         .onHover { hovering in
             withAnimation(.easeInOut(duration: 0.20)) {
