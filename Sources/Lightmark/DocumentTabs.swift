@@ -392,6 +392,8 @@ final class TabScrollController: ObservableObject {
     @Published var scrollOffset: CGFloat = 0
     @Published var contentWidth: CGFloat = 0
     @Published var isDragging: Bool = false
+    @Published var isRecentlyScrolled: Bool = false
+    private var recentScrollTimer: Task<Void, Never>?
     private var boundsObserver: NSObjectProtocol?
     private var frameObserver: NSObjectProtocol?
 
@@ -460,8 +462,20 @@ final class TabScrollController: ObservableObject {
         let newOffset = max(0, clipView.bounds.origin.x)
         let docWidth = scrollView.documentView?.frame.size.width ?? 0
 
-        if !isDragging && abs(scrollOffset - newOffset) > 0.5 {
+        if abs(scrollOffset - newOffset) > 0.5 {
             scrollOffset = newOffset
+            if !isDragging {
+                isRecentlyScrolled = true
+                recentScrollTimer?.cancel()
+                recentScrollTimer = Task { @MainActor in
+                    try? await Task.sleep(nanoseconds: 1_200_000_000)
+                    if !Task.isCancelled {
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            self.isRecentlyScrolled = false
+                        }
+                    }
+                }
+            }
         }
         if docWidth > 0 && abs(contentWidth - docWidth) > 0.5 {
             contentWidth = docWidth
@@ -481,6 +495,7 @@ final class TabScrollController: ObservableObject {
 
 private struct CustomTabScrollBar: View {
     @ObservedObject var controller: TabScrollController
+    let isTabBarHovered: Bool
     @State private var isHovering = false
     @State private var dragStartOffset: CGFloat = 0
 
@@ -488,6 +503,7 @@ private struct CustomTabScrollBar: View {
         GeometryReader { geo in
             let availableWidth = max(0, geo.size.width)
             let isOverflowing = controller.contentWidth > (availableWidth + 1)
+            let shouldShow = isOverflowing && (isTabBarHovered || controller.isDragging || controller.isRecentlyScrolled)
             let maxScroll = max(1.0, controller.contentWidth - availableWidth)
             let ratio = controller.contentWidth > 0 ? min(1.0, availableWidth / controller.contentWidth) : 1.0
             let thumbWidth = max(36.0, availableWidth * ratio)
@@ -547,9 +563,9 @@ private struct CustomTabScrollBar: View {
                         controller.isDragging = false
                     }
             )
-            .opacity(isOverflowing ? 1.0 : 0.0)
-            .allowsHitTesting(isOverflowing)
-            .animation(.easeInOut(duration: 0.2), value: isOverflowing)
+            .opacity(shouldShow ? 1.0 : 0.0)
+            .allowsHitTesting(shouldShow)
+            .animation(.easeInOut(duration: 0.22), value: shouldShow)
             .animation(.spring(response: 0.22, dampingFraction: 0.8), value: isActive)
         }
     }
@@ -560,10 +576,11 @@ struct DocumentTabBar: View {
     let fallbackTitle: String
 
     @StateObject private var scrollController = TabScrollController()
+    @State private var isTabBarHovered = false
 
     private let tabSpacing: CGFloat = 5
     private let maxTabWidth: CGFloat = 230
-    private let minTabWidth: CGFloat = 90
+    private let minTabWidth: CGFloat = 130
 
     private func computeTabWidth(availableWidth: CGFloat, count: Int) -> CGFloat {
         guard count > 0 else { return maxTabWidth }
@@ -579,6 +596,9 @@ struct DocumentTabBar: View {
             GeometryReader { proxy in
                 let availableWidth = max(0, proxy.size.width)
                 let tabWidth = computeTabWidth(availableWidth: availableWidth, count: tabs.items.count)
+                let maxScroll = max(0, scrollController.contentWidth - availableWidth)
+                let hasLeftOverflow = scrollController.scrollOffset > 3
+                let hasRightOverflow = scrollController.contentWidth > availableWidth + 3 && (scrollController.scrollOffset < maxScroll - 3)
 
                 ScrollViewReader { scrollProxy in
                     ScrollView(.horizontal, showsIndicators: false) {
@@ -627,6 +647,27 @@ struct DocumentTabBar: View {
                         )
                     }
                     .coordinateSpace(name: "TabScrollViewSpace")
+                    .mask(
+                        HStack(spacing: 0) {
+                            LinearGradient(
+                                colors: [hasLeftOverflow ? .clear : .black, .black],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                            .frame(width: 24)
+
+                            Color.black
+
+                            LinearGradient(
+                                colors: [.black, hasRightOverflow ? .clear : .black],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                            .frame(width: 24)
+                        }
+                    )
+                    .animation(.easeInOut(duration: 0.22), value: hasLeftOverflow)
+                    .animation(.easeInOut(duration: 0.22), value: hasRightOverflow)
                     .onPreferenceChange(TabScrollPreferenceKey.self) { data in
                         if scrollController.contentWidth == 0 || abs(scrollController.contentWidth - data.contentWidth) > 1 {
                             scrollController.contentWidth = data.contentWidth
@@ -659,12 +700,21 @@ struct DocumentTabBar: View {
         .padding(.leading, 88)
         .padding(.trailing, 14)
         .frame(height: 52)
+        .contentShape(Rectangle())
+        .onHover { hovering in
+            withAnimation(.easeInOut(duration: 0.20)) {
+                isTabBarHovered = hovering
+            }
+        }
         .overlay(alignment: .bottom) {
-            CustomTabScrollBar(controller: scrollController)
-                .padding(.leading, 88)
-                .padding(.trailing, 14)
-                .frame(height: 14)
-                .offset(y: -1)
+            CustomTabScrollBar(
+                controller: scrollController,
+                isTabBarHovered: isTabBarHovered
+            )
+            .padding(.leading, 88)
+            .padding(.trailing, 14)
+            .frame(height: 14)
+            .offset(y: -1)
         }
     }
 }
@@ -695,7 +745,7 @@ private struct DocumentTab: View {
     @State private var isClosing = false
 
     private var isCompact: Bool {
-        width < 120
+        width < 155
     }
 
     private func handleClose() {
@@ -722,7 +772,7 @@ private struct DocumentTab: View {
                             DocumentActionHelper.triggerRenameOrSave(for: item.window, fileURL: fileURL)
                         }) {
                             tabTitleContent(hasChevron: true)
-                                .padding(.horizontal, isCompact ? 5 : 7)
+                                .padding(.horizontal, isCompact ? 4 : 6)
                                 .frame(height: 26)
                                 .background(
                                     RoundedRectangle(cornerRadius: 5.5, style: .continuous)
@@ -742,14 +792,14 @@ private struct DocumentTab: View {
                     } else {
                         // Untitled / New tab: Static label, NOT clickable, no hover button, no chevron, no Finder modal
                         tabTitleContent(hasChevron: false)
-                            .padding(.horizontal, isCompact ? 5 : 7)
+                            .padding(.horizontal, isCompact ? 4 : 6)
                             .frame(height: 26)
                     }
 
                     Spacer(minLength: 0)
                 } else {
                     Button(action: select) {
-                        HStack(spacing: isCompact ? 4.5 : 6) {
+                        HStack(spacing: isCompact ? 4 : 5) {
                             if item.isEdited {
                                 Circle()
                                     .fill(Color.secondary.opacity(0.85))
@@ -758,18 +808,19 @@ private struct DocumentTab: View {
                             }
 
                             Image(systemName: "doc.text")
-                                .font(.system(size: isCompact ? 10.5 : 11.5))
+                                .font(.system(size: isCompact ? 10 : 11.5))
                                 .foregroundStyle(isTabHovering ? Color.primary.opacity(0.80) : Color.secondary)
 
                             Text(item.title)
                                 .font(.system(size: isCompact ? 11.5 : 12.5, weight: .medium))
                                 .foregroundStyle(isTabHovering ? Color.primary : Color.secondary)
                                 .lineLimit(1)
-                                .truncationMode(.middle)
+                                .truncationMode(.tail)
+                                .layoutPriority(1)
 
                             Spacer(minLength: 0)
                         }
-                        .padding(.horizontal, isCompact ? 5 : 7)
+                        .padding(.horizontal, isCompact ? 4 : 6)
                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
                         .contentShape(Rectangle())
                     }
@@ -779,7 +830,7 @@ private struct DocumentTab: View {
                 }
             }
             .padding(.leading, 4.5)
-            .padding(.trailing, 32)
+            .padding(.trailing, isCompact ? 28 : 31)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
 
             // Close button pinned to trailing edge with equal 4.5pt margins
@@ -882,7 +933,7 @@ private struct DocumentTab: View {
     }
 
     private func tabTitleContent(hasChevron: Bool) -> some View {
-        HStack(spacing: isCompact ? 4.5 : 6) {
+        HStack(spacing: isCompact ? 4 : 5) {
             if item.isEdited {
                 Circle()
                     .fill(Color.secondary.opacity(0.85))
@@ -891,18 +942,19 @@ private struct DocumentTab: View {
             }
 
             Image(systemName: "doc.text")
-                .font(.system(size: isCompact ? 10.5 : 11.5))
+                .font(.system(size: isCompact ? 10 : 11.5))
                 .foregroundStyle(Color.primary.opacity(0.80))
 
             Text(item.title)
                 .font(.system(size: isCompact ? 11.5 : 12.5, weight: .medium))
                 .foregroundStyle(Color.primary)
                 .lineLimit(1)
-                .truncationMode(.middle)
+                .truncationMode(.tail)
+                .layoutPriority(1)
 
             if hasChevron {
                 Image(systemName: "chevron.down")
-                    .font(.system(size: 8.5, weight: .semibold))
+                    .font(.system(size: 8, weight: .semibold))
                     .foregroundStyle(Color.primary.opacity(0.85))
                     .opacity(isTitleHovering ? 1.0 : 0.0)
                     .scaleEffect(isTitleHovering ? 1.0 : 0.65)
