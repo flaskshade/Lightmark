@@ -60,10 +60,41 @@ final class DocumentTabs: NSObject, ObservableObject {
         if let keyObserver { NotificationCenter.default.removeObserver(keyObserver) }
     }
 
+    static let maxTabCount = 50
+
+    /// Returns true if a window is an unedited, blank "New Tab" ready to be used.
+    func isReadyNewTab(_ window: NSWindow) -> Bool {
+        guard let doc = document(for: window) else {
+            return window.representedURL == nil && !window.isDocumentEdited
+        }
+        return doc.fileURL == nil && !doc.isDocumentEdited && !window.isDocumentEdited
+    }
+
+    /// Finds the first existing ready-to-serve blank tab, if any.
+    var readyNewTab: NSWindow? {
+        windows.first { isReadyNewTab($0) }
+    }
+
     /// Build the document UI before showing it. SwiftUI's newDocument action
     /// places its window after viewDidMoveToWindow, overriding the tab frame.
     @discardableResult
     func newTab() -> NSDocument? {
+        // 1. If an empty, unedited New Tab is already open and ready, redirect to it!
+        if let existing = readyNewTab {
+            if selectedWindow !== existing {
+                activate(existing)
+            } else {
+                existing.makeKeyAndOrderFront(nil)
+            }
+            return document(for: existing)
+        }
+
+        // 2. Prevent opening an absurd amount of tabs
+        if windows.count >= DocumentTabs.maxTabCount {
+            NSSound.beep()
+            return nil
+        }
+
         isPreparingDocument = true
         defer { isPreparingDocument = false }
         do {
@@ -153,6 +184,10 @@ final class DocumentTabs: NSObject, ObservableObject {
 
     func register(_ window: NSWindow, mode: WindowOpeningMode) {
         guard mode == .tabbed, !isPreparingDocument, !closedWindows.contains(window) else { return }
+        if windows.count >= DocumentTabs.maxTabCount && !windows.contains(where: { $0 === window }) {
+            NSSound.beep()
+            return
+        }
         window.animationBehavior = .none
         window.windowController?.shouldCascadeWindows = false
         guard !windows.contains(where: { $0 === window }) else {
