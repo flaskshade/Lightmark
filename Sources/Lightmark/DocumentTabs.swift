@@ -499,6 +499,8 @@ private struct CustomTabScrollBar: View {
     @State private var isHovering = false
     @State private var dragStartOffset: CGFloat = 0
 
+    private let barHeight: CGFloat = 4.0
+
     var body: some View {
         GeometryReader { geo in
             let availableWidth = max(0, geo.size.width)
@@ -506,25 +508,25 @@ private struct CustomTabScrollBar: View {
             let shouldShow = isOverflowing && (isTabBarHovered || controller.isDragging || controller.isRecentlyScrolled)
             let maxScroll = max(1.0, controller.contentWidth - availableWidth)
             let ratio = controller.contentWidth > 0 ? min(1.0, availableWidth / controller.contentWidth) : 1.0
-            let thumbWidth = max(36.0, availableWidth * ratio)
+            let thumbWidth = max(36.0, min(availableWidth, availableWidth * ratio))
             let travel = max(1.0, availableWidth - thumbWidth)
             let progress = max(0.0, min(1.0, controller.scrollOffset / maxScroll))
-            let thumbOffset = travel * progress
+            let rawOffset = travel * progress
+            let thumbOffset = max(0, min(travel, (rawOffset * 2.0).rounded() / 2.0))
             let isActive = isHovering || controller.isDragging
-            let barHeight: CGFloat = isActive ? 5.5 : 3.5
 
             ZStack(alignment: .leading) {
-                // Subtle track
+                // Fixed-height, stable track
                 Capsule()
-                    .fill(Color(nsColor: .separatorColor).opacity(isActive ? 0.22 : 0.08))
+                    .fill(Color(nsColor: .separatorColor).opacity(isActive ? 0.20 : 0.08))
                     .frame(height: barHeight)
 
-                // Sleek thumb (Apple-like feel)
+                // Fixed-height, stable thumb (dimensions and position remain completely stationary on hover)
                 Capsule()
                     .fill(
                         controller.isDragging
-                            ? Color(nsColor: .labelColor).opacity(0.65)
-                            : (isHovering ? Color(nsColor: .labelColor).opacity(0.50) : Color(nsColor: .secondaryLabelColor).opacity(0.40))
+                            ? Color(nsColor: .labelColor).opacity(0.68)
+                            : (isHovering ? Color(nsColor: .labelColor).opacity(0.55) : Color(nsColor: .secondaryLabelColor).opacity(0.42))
                     )
                     .frame(width: thumbWidth, height: barHeight)
                     .offset(x: thumbOffset)
@@ -532,7 +534,7 @@ private struct CustomTabScrollBar: View {
             .frame(maxHeight: .infinity, alignment: .bottom)
             .contentShape(Rectangle())
             .onHover { hovering in
-                withAnimation(.spring(response: 0.22, dampingFraction: 0.8)) {
+                withAnimation(.easeInOut(duration: 0.15)) {
                     isHovering = hovering
                 }
             }
@@ -565,8 +567,7 @@ private struct CustomTabScrollBar: View {
             )
             .opacity(shouldShow ? 1.0 : 0.0)
             .allowsHitTesting(shouldShow)
-            .animation(.easeInOut(duration: 0.22), value: shouldShow)
-            .animation(.spring(response: 0.22, dampingFraction: 0.8), value: isActive)
+            .animation(.easeInOut(duration: 0.20), value: shouldShow)
         }
     }
 }
@@ -671,9 +672,6 @@ struct DocumentTabBar: View {
                     .onPreferenceChange(TabScrollPreferenceKey.self) { data in
                         if scrollController.contentWidth == 0 || abs(scrollController.contentWidth - data.contentWidth) > 1 {
                             scrollController.contentWidth = data.contentWidth
-                        }
-                        if !scrollController.isDragging && abs(scrollController.scrollOffset - (-data.minX)) > 1 {
-                            scrollController.scrollOffset = -data.minX
                         }
                     }
                     .scrollIndicators(.hidden)
