@@ -1,4 +1,4 @@
-<h1 align="center">Lightmark</h1>
+<h3 align="center">Lightmark</h3>
 
 <p align="center">
   <img src="website/assets/lightmark.png" width="100" height="100" alt="Lightmark app icon">
