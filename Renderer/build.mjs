@@ -7,7 +7,6 @@ await build({ entryPoints: ['reader.js'], bundle: true, minify: true, target: 's
 await build({ entryPoints: ['diagrams.js'], bundle: true, minify: true, format: 'iife', target: 'safari17', outfile: join(out, 'diagrams.js'), legalComments: 'eof' });
 await cp('reader.css', join(out, 'reader.css'));
 await cp('index.html', join(out, 'index.html'));
-await cp('../Examples/MarkdownStressTest.md', join(out, 'stress.md'));
 await cp('node_modules/katex/dist/katex.min.css', join(out, 'katex.min.css'));
 await cp('node_modules/katex/dist/fonts', join(out, 'fonts'), { recursive: true });
 await cp('../Resources/Fonts/InstrumentSerif-Regular.ttf', join(out, 'InstrumentSerif-Regular.ttf'));

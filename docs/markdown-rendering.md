@@ -8,8 +8,7 @@
 - `Renderer/reader.css`: reading primitives and both themes. The editor, empty state, document windows, and custom tabs remain native SwiftUI/AppKit.
 - `Renderer/package.json` and `package-lock.json`: exact direct versions and reproducible dependency graph.
 - `Resources/Reader`: generated, bundled runtime assets plus third-party notices. There are no runtime CDN dependencies. JavaScript rendering occurs in WebKit's content process.
-- `Examples/MarkdownStressTest.md`: the reference fixture, also exposed in the debug Design Preview through the production reader.
-- `LightmarkCore/MarkdownParser.swift` and its existing tests are legacy code, no longer linked into the app or used to judge production rendering coverage.
+- `Resources/Reader/stress.md`: the reference fixture, also exposed in the debug Design Preview through the production reader.
 
 ## Syntax contract
 
