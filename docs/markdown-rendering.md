@@ -50,4 +50,12 @@ Commit/package the generated `Resources/Reader` output with the source and lockf
 
 The JavaScript bundle and Swift development app compile. npm's installation audit reported no vulnerabilities in the resolved graph. Runtime verification remains separate from compilation. The fixture is included for direct review; visual fidelity, accessibility and large-document timings are not yet verified.
 
-For the MVP performance review and remaining distribution gates, see [release-audit.md](release-audit.md).
+
+
+## Quick Look previews
+
+`Sources/LightmarkQuickLook/PreviewViewController.swift` supplies Finder's read-only view. The extension ships the same generated renderer assets as the app and shares `ReaderResources.swift`, preserving the sanitizer and local resource boundary. The extension has read-only, user-selected file access. WebKit requires the client-network entitlement to launch its helper processes; preview CSP still blocks remote images and document connections. Remote images show alt-text placeholders; sibling local images appear only when Finder's sandbox grants access. Non-anchor links do not navigate or launch the app.
+
+File loading runs concurrently with WebKit startup, off the main thread. The preview completes after the initial DOM is ready, without waiting for images or lazy diagrams. Input is bounded to 2 MiB; longer files are shortened with an explicit notice. Documents above 500,000 UTF-16 units use the plain-text path to avoid expensive parsing and DOM construction inside Finder. Pending loads are cancelled on dismissal. Appearance changes update the existing page without reparsing.
+
+The signed development extension was registered and enabled on the development Mac. A Quick Look window rendered the bundled stress fixture; debug instrumentation measured 210 ms from the preparation callback to initial DOM completion in that run. This is not a cold-start benchmark or verification across supported macOS versions. Nested app/extension signature checks passed.

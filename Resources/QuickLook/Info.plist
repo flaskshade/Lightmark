@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+<key>CFBundleName</key><string>Lightmark Quick Look</string>
+<key>CFBundleDisplayName</key><string>Lightmark</string>
+<key>CFBundleIdentifier</key><string>app.lightmark.reader.quicklook</string>
+<key>CFBundleExecutable</key><string>LightmarkQuickLook</string>
+<key>CFBundlePackageType</key><string>XPC!</string>
+<key>CFBundleSupportedPlatforms</key><array><string>MacOSX</string></array>
+<key>NSExtension</key><dict>
+<key>NSExtensionPointIdentifier</key><string>com.apple.quicklook.preview</string>
+<key>NSExtensionPrincipalClass</key><string>LightmarkPreviewController</string>
+<key>NSExtensionAttributes</key><dict>
+<key>QLIsDataBasedPreview</key><false/>
+<key>QLSupportedContentTypes</key><array><string>net.daringfireball.markdown</string></array>
+<key>QLSupportsSearchableItems</key><false/>
+</dict></dict>
+</dict></plist>

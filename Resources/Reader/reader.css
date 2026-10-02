@@ -87,3 +87,5 @@ pre:hover > .lm-copy-code-btn:hover{opacity:1}
 
 .lm-diagram{display:block;max-width:100%;height:auto;margin:1.1em auto 1.35em;border-radius:0}
 dt{font-weight:600}dd{margin:.25em 0 1em 1.65em}mark{color:inherit;background:rgba(235,189,50,.25);border-radius:2px}
+
+#reader[data-preview=true] .lm-copy-btn{display:none}

@@ -74,6 +74,7 @@ let pending = null, scheduled = false, taskFocus = null;
 
 function render(payload) {
   lastVersion = payload.version;
+  root.dataset.preview = payload.preview ? 'true' : 'false';
   document.documentElement.dataset.theme = payload.dark ? 'dark' : 'light';
   root.style.setProperty('--font-size', `${payload.fontSize}px`);
   root.style.setProperty('--reading-width', payload.width > 0 ? `${payload.width}px` : 'none');
@@ -85,6 +86,13 @@ function render(payload) {
   }
   tableResizeObserver.disconnect();
   root.classList.remove('render-fallback');
+  if (payload.preview && payload.plainText) {
+    root.textContent = payload.source;
+    root.classList.add('render-fallback');
+    lastSource = payload.source; lastIdentity = payload.identity;
+    window.scrollTo(0, 0);
+    return;
+  }
   const scroll = window.scrollY;
   const sameDocument = payload.identity === lastIdentity;
   const environment = { originalSource: payload.source };
@@ -220,6 +228,13 @@ function render(payload) {
     }
     for (const img of fragment.querySelectorAll('img')) {
       const src = img.getAttribute('src') ?? '';
+      if (payload.preview && /^https?:/i.test(src)) {
+        const fallback = document.createElement('span');
+        fallback.className = 'image-fallback';
+        fallback.textContent = img.alt || 'Online image';
+        img.replaceWith(fallback);
+        continue;
+      }
       img.removeAttribute('srcset');
       img.loading = 'lazy'; img.decoding = 'async'; img.referrerPolicy = 'no-referrer';
       if (!/^(https?:|data:image\/(png|jpeg|gif|webp);)/i.test(src)) {
@@ -248,6 +263,8 @@ function render(payload) {
   }
 }
 window.lightmarkRender = payload => {
+  // Quick Look presents the view only after preparation, so no animation frame is required.
+  if (payload.preview) { render(payload); return; }
   pending = payload;
   if (scheduled) return;
   scheduled = true;
@@ -276,7 +293,7 @@ root.addEventListener('click', event => {
     } catch {}
     return;
   }
-  window.webkit.messageHandlers.openLink.postMessage(href);
+  if (root.dataset.preview !== 'true') window.webkit.messageHandlers.openLink.postMessage(href);
 });
 
 root.addEventListener('change', event => {
