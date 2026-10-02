@@ -554,20 +554,13 @@ struct RecentFilesSuggestionsSection: View {
                         )
                         .fixedSize()
 
-                        // Clear Button with smaller x icon and matching 22pt container height
                         Button(action: {
                             store.clear()
                         }) {
-                            HStack(spacing: 3.5) {
-                                Image(systemName: "xmark")
-                                    .font(.system(size: 7.5, weight: .semibold))
-                                    .foregroundStyle(Color.secondary.opacity(isClearHovered ? 0.90 : 0.65))
-
-                                Text("Clear")
-                                    .font(.system(size: 11, weight: .regular))
-                                    .lineLimit(1)
-                                    .fixedSize()
-                            }
+                            Text("Clear")
+                            .font(.system(size: 11, weight: .regular))
+                            .lineLimit(1)
+                            .fixedSize()
                             .foregroundStyle(
                                 isClearHovered ? Color.primary.opacity(0.85) : Color.secondary.opacity(0.65)
                             )
