@@ -688,6 +688,11 @@ struct PreferencesView: View {
                 .foregroundStyle(.secondary)
                 .padding(.top, 4)
 
+            if FirstLaunch.shared.isInstalled {
+                Button("Default Markdown App…") { FirstLaunch.shared.present() }
+                    .padding(.top, 8)
+            }
+
             signatureView
                 .padding(.top, 24)
         }

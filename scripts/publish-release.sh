@@ -15,13 +15,13 @@ fi
 : "${NOTARY_KEYCHAIN_PROFILE:?Set the local notarytool Keychain profile}"
 export RELEASE_TAG="$tag"
 scripts/package-release.sh
-cp dist/release/{Lightmark.zip,release.json,SHA256SUMS.txt} website/downloads/
-git add website/downloads/Lightmark.zip website/downloads/release.json website/downloads/SHA256SUMS.txt
+cp dist/release/{Lightmark.dmg,Lightmark.zip,release.json,SHA256SUMS.txt} website/downloads/
+git add website/downloads/Lightmark.dmg website/downloads/Lightmark.zip website/downloads/release.json website/downloads/SHA256SUMS.txt
 if ! git diff --cached --quiet; then
   git commit -m "Publish notarized Lightmark $version"
 fi
 git tag -a "$tag" -m "Lightmark $version"
 # Publish branch and immutable tag together; concurrent main updates reject both.
 git push --atomic origin main "$tag"
-gh release create "$tag" dist/release/Lightmark.zip dist/release/SHA256SUMS.txt dist/release/release.json --repo roycim/Lightmark --verify-tag --title "Lightmark $version" --generate-notes
+gh release create "$tag" dist/release/Lightmark.dmg dist/release/Lightmark.zip dist/release/SHA256SUMS.txt dist/release/release.json --repo roycim/Lightmark --verify-tag --title "Lightmark $version" --generate-notes
 print "Published $tag. Cloudflare will deploy the website download automatically."

@@ -95,8 +95,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        FirstLaunch.shared.start()
         DispatchQueue.main.async {
             if !self.hasOpenedFile && NSDocumentController.shared.documents.isEmpty { DocumentTabs.newWindow() }
+            FirstLaunch.shared.presentIfNeeded()
         }
         CustomFonts.registerOnce()
         AppTheme.apply(stored: UserDefaults.standard.string(forKey: "appTheme") ?? "system")

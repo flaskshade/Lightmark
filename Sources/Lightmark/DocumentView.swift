@@ -2200,6 +2200,7 @@ struct DesignPreviewCommands: Commands {
     var body: some Commands {
         CommandMenu("Developer") {
             Button("Show Design Preview") { DesignPreviewWindow.show() }
+            Button("Replay Welcome") { FirstLaunch.shared.present(welcome: true) }
         }
     }
 }

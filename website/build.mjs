@@ -23,10 +23,14 @@ html = html.replace(/(<link rel="canonical" href=")[^"]+("[^>]*>)/, `$1${siteURL
  .replace(/(<meta property="og:url" content=")[^"]+("[^>]*>)/, `$1${siteURL.href}$2`)
  .replace(/(<meta (?:property="og:image"|name="twitter:image") content=")[^"]+("[^>]*>)/g, `$1${new URL('assets/social-preview.png',siteURL).href}$2`);
 const releaseURL = process.env.RELEASE_DOWNLOAD_URL;
+// Keep the existing release available until the first verified DMG is published.
+if (!releaseURL && !(await readdir('downloads')).includes('Lightmark.dmg')) {
+ html = html.replaceAll('Lightmark.dmg', 'Lightmark.zip');
+}
 if (releaseURL) {
  const url = new URL(releaseURL);
  if (url.protocol !== 'https:') throw new Error('Release downloads must use HTTPS');
- html = html.replace('href="downloads/Lightmark.zip"', `href="${url.href}"`);
+ html = html.replace(/href="downloads\/Lightmark\.(?:zip|dmg)"/, `href="${url.href}"`).replace(/ download="Lightmark\.(?:zip|dmg)"/, '');
 }
 
 // Only deploy the allowlisted static output, never the source tree.
