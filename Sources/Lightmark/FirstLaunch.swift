@@ -125,18 +125,18 @@ private struct WelcomeView: View {
         .opacity(visible ? 1 : 0)
         .task {
             intro = showIntro
-            withAnimation(reduceMotion ? nil : .easeOut(duration: 0.55)) { visible = true }
+            withAnimation(reduceMotion ? nil : .easeOut(duration: 0.3125)) { visible = true }
             if showIntro {
-                withAnimation(reduceMotion ? nil : .easeInOut(duration: 2.8)) { auraExpanded = true }
-                do { try await Task.sleep(for: .seconds(reduceMotion ? 0.5 : 3.0)) }
+                withAnimation(reduceMotion ? nil : .easeInOut(duration: 2.1)) { auraExpanded = true }
+                do { try await Task.sleep(for: .seconds(reduceMotion ? 0.5 : 2.25)) }
                 catch { return }
                 if !FirstLaunch.shared.isInstalled || FirstLaunch.shared.isDefault {
-                    withAnimation(reduceMotion ? nil : .easeOut(duration: 0.4)) { visible = false }
-                    try? await Task.sleep(for: .seconds(reduceMotion ? 0 : 0.4))
+                    withAnimation(reduceMotion ? nil : .easeOut(duration: 0.3)) { visible = false }
+                    try? await Task.sleep(for: .seconds(reduceMotion ? 0 : 0.3))
                     guard !Task.isCancelled else { return }
                     dismiss()
                 } else {
-                    withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.4)) { intro = false }
+                    withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.3)) { intro = false }
                 }
             }
         }
