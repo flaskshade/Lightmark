@@ -475,7 +475,7 @@ body,.introduction,.identity{background-color:#FFFFFF}
 @media(prefers-color-scheme:dark){.identity .free-note{color:#a1a1a8}}
 
 /* Give the free promise more presence, generous breathing room, and centered alignment. */
-.identity .free-note{display:flex;justify-content:center;align-items:center;font-size:15px;line-height:1.4;color:#737378;margin:22px 0 26px}
+.identity .free-note{display:flex;justify-content:center;align-items:center;font-size:16px;line-height:1.4;color:#737378;margin:22px 0 26px}
 .identity .compatibility-note{margin-top:0}
 @media(prefers-color-scheme:dark){.identity .free-note{color:#b4b4bb}}
 
@@ -505,7 +505,8 @@ html{background:var(--paper)}
 .github-link:focus-visible{outline:2px solid #0877db;outline-offset:3px}
 .github-copy{display:grid;align-items:center;justify-items:center;white-space:nowrap}
 .github-default{grid-area:1/1;display:block;transition:opacity .18s ease}
-.github-badge{display:inline-flex;width:18px;height:18px;flex:0 0 18px}
+.github-badge{display:inline-flex;width:18px;height:18px;flex:0 0 18px;transform:translateX(var(--source-default-offset,0px));transition:transform .25s cubic-bezier(.2,.8,.25,1)}
+.github-link:is(:hover,:focus-visible) .github-badge{transform:translateX(var(--source-hover-offset,0px))}
 .github-mark{display:block;width:18px;height:18px}
 .github-invitation{grid-area:1/1;display:flex;align-items:center;justify-content:center;gap:8px;font-weight:500;opacity:0;transition:opacity .18s ease}
 .github-star{animation:none!important;transition:none!important;transform:none!important;display:block;width:18px;height:18px;flex:0 0 18px;color:#a47718}
@@ -513,4 +514,4 @@ html{background:var(--paper)}
 .github-link:is(:hover,:focus-visible) .github-invitation{opacity:1}
 @media(prefers-color-scheme:dark){.github-link:is(:hover,:focus-visible){color:#fff;background:rgba(255,255,255,.09)}.github-star{color:#EDE19A}}
 @media(pointer:coarse){.github-link{min-height:44px}}
-@media(prefers-reduced-motion:reduce){.github-link,.github-default,.github-invitation{transition:none}.github-link .github-default,.github-link .github-invitation{transform:none}}
+@media(prefers-reduced-motion:reduce){.github-link,.github-default,.github-invitation,.github-badge{transition:none}.github-link .github-default,.github-link .github-invitation{transform:none}}

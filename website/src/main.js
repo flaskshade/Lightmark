@@ -113,3 +113,20 @@ copyButton.addEventListener('click', async () => {
 download.addEventListener('animationend', () => { download.style.animation = 'none'; });
 
 installMobileScrollbar(document.querySelector("#demo-window"));
+
+// Measure labels independently; icon motion never changes the link's hit area.
+const sourceLink = document.querySelector('.github-link');
+if (sourceLink) {
+  const normalLabel = sourceLink.querySelector('.github-default');
+  const hoverLabel = sourceLink.querySelector('.github-invitation');
+  const copy = sourceLink.querySelector('.github-copy');
+  const positionSourceIcon = () => {
+    const width = copy.getBoundingClientRect().width;
+    sourceLink.style.setProperty('--source-default-offset', `${(normalLabel.getBoundingClientRect().width - width) / 2}px`);
+    sourceLink.style.setProperty('--source-hover-offset', `${(hoverLabel.getBoundingClientRect().width - width) / 2}px`);
+  };
+  const sourceLabelsObserver = new ResizeObserver(positionSourceIcon);
+  sourceLabelsObserver.observe(normalLabel);
+  sourceLabelsObserver.observe(hoverLabel);
+  positionSourceIcon();
+}
