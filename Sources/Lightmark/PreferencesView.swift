@@ -687,7 +687,7 @@ struct PreferencesView: View {
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
 
-            Text("A focused & lightweight companion for Markdown on macOS.")
+            Text("A simple & lightweight companion for Markdown on macOS")
                 .font(.body)
                 .foregroundStyle(.secondary)
                 .padding(.top, 4)

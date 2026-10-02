@@ -612,7 +612,7 @@ struct RecentFilesSuggestionsSection: View {
                         .font(.system(size: 12.5, weight: .medium))
                         .foregroundStyle(Color.primary.opacity(0.75))
 
-                    Text("Documents you open will appear here for quick access.")
+                    Text("Documents you open will appear here for quick access")
                         .font(.system(size: 11, weight: .regular))
                         .foregroundStyle(Color.secondary.opacity(0.65))
                         .multilineTextAlignment(.center)

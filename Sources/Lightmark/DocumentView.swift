@@ -436,14 +436,15 @@ private struct DocumentContentView: View {
         }
         .ignoresSafeArea(edges: .top)
         .overlay(alignment: .bottom) {
-            if showFeedback {
-                ModeFeedbackHUD(isEditing: isEditing)
+            if showFeedback || appUpdates.showUpdateComplete {
+                ModeFeedbackHUD(isEditing: isEditing, updateComplete: appUpdates.showUpdateComplete)
                     .padding(.bottom, 12)
                     .transition(hudTransition)
                     .allowsHitTesting(false)
                     .zIndex(995)
             }
         }
+        .animation(reduceHeaderMotion ? nil : .easeInOut(duration: 0.18), value: appUpdates.showUpdateComplete)
         .overlay(alignment: .bottom) {
             if showCopyFeedback {
                 ActionFeedbackHUD(title: "Copied All Text", systemImage: "doc.on.doc.fill", shortcut: "⌘⇧C")
@@ -1020,6 +1021,7 @@ struct EditModeButton: View {
 
 private struct ModeFeedbackHUD: View {
     let isEditing: Bool
+    var updateComplete = false
 
     var body: some View {
         HStack(spacing: 7.5) {
@@ -1029,7 +1031,11 @@ private struct ModeFeedbackHUD: View {
                     .fill(ReadingStyle.accent.opacity(0.14))
                     .frame(width: 22, height: 22)
 
-                if isEditing {
+                if updateComplete {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(ReadingStyle.accent)
+                } else if isEditing {
                     Image(systemName: "pencil.line")
                         .font(.system(size: 11, weight: .semibold))
                         .foregroundStyle(ReadingStyle.accent)
@@ -1050,7 +1056,7 @@ private struct ModeFeedbackHUD: View {
             .animation(.spring(response: 0.12, dampingFraction: 0.78), value: isEditing)
 
             // Mode title with fluid text transition
-            Text(isEditing ? "Editing Source" : "Reading View")
+            Text(updateComplete ? "Update complete" : (isEditing ? "Editing Source" : "Reading View"))
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(Color.primary)
                 .contentTransition(.numericText())

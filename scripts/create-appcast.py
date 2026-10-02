@@ -27,7 +27,7 @@ item = ET.SubElement(channel, 'item')
 ET.SubElement(item, 'title').text = f'Lightmark {version}'
 ET.SubElement(item, 'pubDate').text = formatdate(usegmt=True)
 ET.SubElement(item, f'{{{ns}}}minimumSystemVersion').text = info['LSMinimumSystemVersion']
-ET.SubElement(item, f'{{{ns}}}releaseNotesLink').text = 'https://trylightmark.com/changelog/'
+ET.SubElement(item, f'{{{ns}}}fullReleaseNotesLink').text = 'https://trylightmark.com/changelog/'
 ET.SubElement(item, 'enclosure', {
     'url': f'https://trylightmark.com/downloads/{name}',
     'length': str(archive.stat().st_size), 'type': 'application/octet-stream',

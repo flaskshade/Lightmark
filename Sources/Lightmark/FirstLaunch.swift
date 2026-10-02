@@ -98,7 +98,7 @@ private struct WelcomeView: View {
                     .font(.system(size: 19, weight: .semibold))
                 Text(LocalizedStringKey(error ?? (FirstLaunch.shared.isDefault
                     ? "Lightmark is your default Markdown app."
-                    : "Make Lightmark the default app for opening `.md` files.")))
+                    : "Make Lightmark the default app for opening `.md` files")))
                     .font(.system(size: 13)).foregroundStyle(.secondary)
                     .multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
                 HStack(spacing: 12) {
