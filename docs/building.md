@@ -23,11 +23,12 @@ Commit the regenerated files under `Resources/Reader/` alongside renderer change
 
 ## Finder Quick Look
 
-The app build embeds `LightmarkQuickLook.appex`; no additional dependencies or Xcode project are required. `scripts/build-quicklook.sh` compiles the extension against the installed macOS SDK and signs it before the host app. Its version and minimum OS come from the host Info.plist.
+Release builds embed `LightmarkQuickLook.appex`; no additional dependencies or Xcode project are required. `scripts/build-quicklook.sh` compiles the extension against the installed macOS SDK and signs it before the host app. Its version and minimum OS come from the host Info.plist.
 
-For local development, register the built extension (macOS signing policy may restrict ad-hoc extension activation):
+Development builds omit the extension to avoid competing with an installed production app. To build and register it explicitly for extension development (macOS signing policy may restrict ad-hoc activation):
 
 ```sh
+LIGHTMARK_BUILD_QUICKLOOK=1 scripts/build-app.sh debug
 pluginkit -a "$PWD/dist/Lightmark.app/Contents/PlugIns/LightmarkQuickLook.appex"
 ```
 

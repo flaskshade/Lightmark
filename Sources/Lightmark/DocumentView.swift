@@ -398,8 +398,11 @@ private struct DocumentContentView: View {
 
             // Keep label visibility and reserved header space driven by one size.
             GeometryReader { header in
-                let showsUpdateLabel = header.size.width >= 1100 &&
-                    (!showsDocumentTabs || header.size.width - 270 >= CGFloat(tabs.items.count) * 180)
+                let sidebarInset = isDefaultNoFileView && !isEditing && !showsDocumentTabs
+                    ? NewTabLayout.recentsWidth(in: header.size.width) + 1 : 0
+                let headerWidth = max(0, header.size.width - sidebarInset)
+                let showsUpdateLabel = headerWidth >= 1100 &&
+                    (!showsDocumentTabs || headerWidth - 270 >= CGFloat(tabs.items.count) * 180)
                 let updateInset: CGFloat = appUpdates.availableVersion == nil && !appUpdates.isChecking ? 0 : (showsUpdateLabel ? 154 : 36)
             ZStack {
                 DocumentTabBar(tabs: tabs, fallbackTitle: documentTitle)
@@ -435,7 +438,7 @@ private struct DocumentContentView: View {
                         .transition(.opacity)
                     }
                 }
-                .padding(.trailing, 14)
+                .padding(.trailing, 14 + sidebarInset)
             }
             }
             .frame(height: 52)
@@ -1725,6 +1728,12 @@ private struct PulsatingDropBackgroundView: View {
     }
 }
 
+private enum NewTabLayout {
+    static func recentsWidth(in windowWidth: CGFloat) -> CGFloat {
+        min(max(300, max(0, windowWidth - 64) * 0.42), 660)
+    }
+}
+
 struct EmptyDocumentStateView: View {
     let fileURL: URL?
     let documentWindow: NSWindow?
@@ -1762,8 +1771,7 @@ struct EmptyDocumentStateView: View {
     private var newTabOpenView: some View {
         GeometryReader { geo in
             let availableWidth = geo.size.width
-            let paneSpace = max(0, availableWidth - 64)
-            let recentsWidth = min(max(300, paneSpace * 0.42), 660)
+            let recentsWidth = NewTabLayout.recentsWidth(in: availableWidth)
 
             HStack(spacing: 0) {
                 // Left side: Clean, spacious, vertically centered hero drop zone

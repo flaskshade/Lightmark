@@ -52,7 +52,9 @@ for nested in "$framework/Versions/B/XPCServices/Downloader.xpc" "$framework/Ver
 done
 codesign "${sign_options[@]}" "$framework"
 cp "$project_root/.build/checkouts/Sparkle/LICENSE" "$app_path/Contents/Resources/Sparkle-LICENSE"
-"$project_root/scripts/build-quicklook.sh" "$app_path" "$build_mode"
+if [[ "$build_mode" == release || "${LIGHTMARK_BUILD_QUICKLOOK:-0}" == 1 ]]; then
+  "$project_root/scripts/build-quicklook.sh" "$app_path" "$build_mode"
+fi
 chmod +x "$app_path/Contents/MacOS/Lightmark"
 # Remove local object-file paths from release binaries before signing.
 if [[ "$build_mode" == release ]]; then strip -S "$app_path/Contents/MacOS/Lightmark"; fi
