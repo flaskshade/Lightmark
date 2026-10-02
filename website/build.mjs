@@ -40,7 +40,7 @@ const { cp, mkdir, rm } = await import('node:fs/promises');
 const output = 'site-output';
 await rm(output, { recursive:true, force:true });
 await mkdir(output);
-for (const file of ['style.css','pages.css','assets','contact','privacy']) {
+for (const file of ['style.css','pages.css','assets','contact','privacy','changelog']) {
  await cp(file, `${output}/${file}`, { recursive:true });
 }
 await writeFile(`${output}/index.html`,html);
