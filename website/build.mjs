@@ -1,6 +1,8 @@
 import { build } from 'esbuild';
 await build({ entryPoints: ['src/main.js'], bundle: true, minify: true, target: 'safari17', outfile: 'assets/main.js', legalComments: 'eof' });
 
+await build({ entryPoints: ['src/contact-card.js'], bundle: true, minify: true, target: 'safari17', outfile: 'assets/contact-card.js' });
+
 // Preserve the notices of dependencies shipped inside the static JS bundle.
 import { readdir, readFile, writeFile } from 'node:fs/promises';
 let notices = 'Lightmark website — bundled third-party licenses\n';
