@@ -269,7 +269,7 @@ struct HeaderUpdateButton: View {
                 .frame(width: showsLabel ? 148 : 30, height: 30)
                 .contentShape(RoundedRectangle(cornerRadius: 7))
             }
-            .buttonStyle(.borderless)
+            .buttonStyle(HeaderUpdateButtonStyle())
             .disabled(updates.isChecking || updates.headerState == .downloading || updates.headerState == .preparing || updates.headerState == .restarting)
             .contextMenu {
                 if updates.headerState == .downloading {
@@ -323,7 +323,6 @@ struct SettingsUpdateSection: View {
                     Button(action: updates.activateUpdate) {
                         Label(updates.headerState == .ready ? "Restart to update" : "Download update",
                               systemImage: updates.headerState == .ready ? "arrow.clockwise" : "arrow.down.circle")
-                            .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(UpdateSettingsButtonStyle(prominent: true))
                 case .downloading, .preparing, .restarting:
@@ -360,6 +359,24 @@ private struct UpdateSettingsButtonStyle: ButtonStyle {
                         : Color.primary.opacity(configuration.isPressed ? 0.12 : (isHovered && isEnabled ? 0.08 : 0.045)))
             }
             .opacity(isEnabled ? 1 : 0.65)
+            .contentShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+            .onHover { isHovered = $0 }
+            .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: isHovered)
+    }
+}
+
+
+private struct HeaderUpdateButtonStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var isEnabled
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var isHovered = false
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .background {
+                RoundedRectangle(cornerRadius: 7, style: .continuous)
+                    .fill(Color.blue.opacity(isEnabled ? (configuration.isPressed ? 0.16 : (isHovered ? 0.09 : 0)) : 0))
+            }
             .contentShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
             .onHover { isHovered = $0 }
             .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: isHovered)

@@ -701,9 +701,15 @@ struct DocumentTabBar: View {
     @StateObject private var scrollController = TabScrollController()
     @State private var isTabBarHovered = false
 
-    private let tabSpacing: CGFloat = 5
+    private static let minimumTabWidth: CGFloat = 130
+    private static let spacing: CGFloat = 5
+    private let tabSpacing = Self.spacing
     private let maxTabWidth: CGFloat = 230
-    private let minTabWidth: CGFloat = 130
+    private let minTabWidth = Self.minimumTabWidth
+
+    static func minimumContentWidth(for count: Int) -> CGFloat {
+        CGFloat(max(2, count)) * minimumTabWidth + CGFloat(max(1, count - 1)) * spacing
+    }
 
     private func computeTabWidth(availableWidth: CGFloat, count: Int) -> CGFloat {
         guard count > 0 else { return maxTabWidth }

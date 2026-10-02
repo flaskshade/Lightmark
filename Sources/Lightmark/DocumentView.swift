@@ -401,8 +401,11 @@ private struct DocumentContentView: View {
                 let sidebarInset = isDefaultNoFileView && !isEditing && !showsDocumentTabs
                     ? NewTabLayout.recentsWidth(in: header.size.width) + 1 : 0
                 let headerWidth = max(0, header.size.width - sidebarInset)
-                let showsUpdateLabel = headerWidth >= 1100 &&
-                    (!showsDocumentTabs || headerWidth - 270 >= CGFloat(tabs.items.count) * 180)
+                let isEmptyHeader = isDefaultNoFileView && !isEditing && !showsDocumentTabs
+                let requiredHeaderWidth: CGFloat = showsDocumentTabs
+                    ? 400 + DocumentTabBar.minimumContentWidth(for: tabs.items.count)
+                    : (isEmptyHeader ? 280 : 640)
+                let showsUpdateLabel = headerWidth >= requiredHeaderWidth
                 let updateInset: CGFloat = appUpdates.availableVersion == nil && !appUpdates.isChecking ? 0 : (showsUpdateLabel ? 154 : 36)
             ZStack {
                 DocumentTabBar(tabs: tabs, fallbackTitle: documentTitle)
