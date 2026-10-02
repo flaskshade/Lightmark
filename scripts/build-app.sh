@@ -22,7 +22,8 @@ swift build -c "$build_mode" --disable-sandbox \
   -Xlinker -platform_version -Xlinker macos \
   -Xlinker "$minimum_macos_version" -Xlinker "$sdk_macos_version"
 
-app_path="$project_root/dist/Lightmark.app"
+app_path="${LIGHTMARK_DIST_DIR:-$project_root/dist}/Lightmark.app"
+rm -rf "$app_path"
 mkdir -p "$app_path/Contents/MacOS"
 mkdir -p "$app_path/Contents/Resources/Fonts"
 cp "$project_root/.build/$build_mode/Lightmark" "$app_path/Contents/MacOS/Lightmark"
@@ -39,5 +40,10 @@ xcrun actool "$project_root/.build/IconAssets.xcassets" \
   --output-partial-info-plist "$project_root/.build/icon-info.plist" \
   --output-format human-readable-text
 chmod +x "$app_path/Contents/MacOS/Lightmark"
-codesign --force --deep --sign - --identifier app.lightmark.reader "$app_path"
+if [[ -n "${APPLE_SIGNING_IDENTITY:-}" ]]; then
+  codesign --force --timestamp --options runtime --sign "$APPLE_SIGNING_IDENTITY" "$app_path/Contents/MacOS/Lightmark"
+  codesign --force --timestamp --options runtime --sign "$APPLE_SIGNING_IDENTITY" --identifier app.lightmark.reader "$app_path"
+else
+  codesign --force --sign - --identifier app.lightmark.reader "$app_path"
+fi
 print "$app_path"
