@@ -5,11 +5,11 @@
     <link>https://trylightmark.com/</link>
     <description>Signed Lightmark updates</description>
     <item>
-      <title>Lightmark 0.1.7</title>
-      <pubDate>Fri, 02 Oct 2026 06:59:57 GMT</pubDate>
+      <title>Lightmark 0.1.8</title>
+      <pubDate>Fri, 02 Oct 2026 16:17:17 GMT</pubDate>
       <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
       <sparkle:fullReleaseNotesLink>https://trylightmark.com/changelog/</sparkle:fullReleaseNotesLink>
-      <enclosure url="https://trylightmark.com/downloads/Lightmark-0.1.7-8.zip" length="6304270" type="application/octet-stream" sparkle:version="8" sparkle:shortVersionString="0.1.7" sparkle:edSignature="4W9xgRYw7LRdwUrtXuYmj7xPWz0r2DOfjE5yEZ3ft54WBMe7z9Bx7dvYxo97gZXWqf3ZFEVcy5sdwFx3Zqe9DA==" />
+      <enclosure url="https://trylightmark.com/downloads/Lightmark-0.1.8-9.zip" length="6255392" type="application/octet-stream" sparkle:version="9" sparkle:shortVersionString="0.1.8" sparkle:edSignature="A0Kn1A1rN6qd7L/4gchQ+kvpZts7/qUvOkzxtHpXYjvIdxvyENcB/y/Tnz8vhofdwquiBnOyrPE3U7Jgz5w6CA==" />
     </item>
   </channel>
 </rss>
