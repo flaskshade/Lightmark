@@ -129,14 +129,17 @@ struct MarkdownReader: NSViewRepresentable {
         }
 
         func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
-            guard message.frameInfo.isMainFrame, message.frameInfo.request.url?.scheme == "lightmark-reader" else { return }
+            guard message.frameInfo.isMainFrame,
+                  let origin = message.frameInfo.request.url,
+                  origin.scheme == "lightmark-reader", origin.host == "bundle",
+                  origin.path == "/index.html" else { return }
             if message.name == "toggleTask" {
                 guard let body = message.body as? [String: Any],
                       let version = body["version"] as? Int, version == sourceVersion,
                       let offset = body["offset"] as? Int, let checked = body["checked"] as? Bool,
                       let source = payload["source"] as? String, onSourceChange != nil else { return }
                 let text = source as NSString
-                guard offset > 0, offset + 1 < text.length,
+                guard offset > 0, offset < text.length - 1,
                       text.substring(with: NSRange(location: offset - 1, length: 1)) == "[",
                       text.substring(with: NSRange(location: offset + 1, length: 1)) == "]",
                       [" ", "x", "X"].contains(text.substring(with: NSRange(location: offset, length: 1))) else { return }
@@ -173,7 +176,11 @@ struct MarkdownReader: NSViewRepresentable {
     private lazy var root: URL = {
         if let resource = Bundle.main.resourceURL?.appendingPathComponent("Reader"),
            FileManager.default.fileExists(atPath: resource.appendingPathComponent("index.html").path) { return resource }
+        #if DEBUG
         return URL(fileURLWithPath: FileManager.default.currentDirectoryPath).appendingPathComponent("Resources/Reader")
+        #else
+        return Bundle.main.bundleURL.appendingPathComponent("Contents/Resources/Reader")
+        #endif
     }()
 
     private var requests: [ObjectIdentifier: Task<Void, Never>] = [:]

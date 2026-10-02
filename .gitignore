@@ -11,3 +11,6 @@ Renderer/node_modules/
 .env.*
 *.p12
 *.p8
+
+# Machine-specific operational notes
+.local/

@@ -5,6 +5,7 @@ cd "$project_root"
 [[ "$(git branch --show-current)" == main ]] || { print -u2 'Switch to main before releasing.'; exit 1; }
 [[ -z "$(git status --porcelain)" ]] || { print -u2 'Commit or save all working changes before releasing.'; exit 1; }
 gh auth status > /dev/null
+release_repo="$(gh repo view --json nameWithOwner --jq .nameWithOwner)"
 version="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' Resources/Info.plist)"
 tag="v$version"
 git fetch origin main --tags
@@ -25,5 +26,5 @@ fi
 git tag -a "$tag" -m "Lightmark $version"
 # Publish branch and immutable tag together; concurrent main updates reject both.
 git push --atomic origin main "$tag"
-gh release create "$tag" dist/release/Lightmark.dmg dist/release/Lightmark.zip dist/release/SHA256SUMS.txt dist/release/release.json --repo roycim/Lightmark --verify-tag --title "Lightmark $version" --generate-notes
+gh release create "$tag" dist/release/Lightmark.dmg dist/release/Lightmark.zip dist/release/SHA256SUMS.txt dist/release/release.json --repo "$release_repo" --verify-tag --title "Lightmark $version" --generate-notes
 print "Published $tag. Cloudflare will deploy the website download automatically."

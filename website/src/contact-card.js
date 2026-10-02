@@ -1,3 +1,4 @@
+// Pointer-driven card depth; touch and reduced-motion views remain static.
 const card = document.querySelector('.contact-card-tilt');
 const items = card.querySelectorAll('[data-depth]');
 const enabled = matchMedia('(hover:hover) and (pointer:fine) and (prefers-reduced-motion:no-preference)');

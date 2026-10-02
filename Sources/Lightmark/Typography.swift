@@ -30,9 +30,11 @@ enum CustomFonts {
         let bundleContents = Bundle.main.bundleURL.appendingPathComponent("Contents/Resources/Fonts")
         candidateDirectories.append(bundleContents)
 
+        #if DEBUG
         let cwd = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
         candidateDirectories.append(cwd.appendingPathComponent("Resources/Fonts"))
         candidateDirectories.append(cwd.appendingPathComponent("Resources"))
+        #endif
 
         for fileName in fontFileNames {
             for dir in candidateDirectories {

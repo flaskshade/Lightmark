@@ -1031,7 +1031,7 @@ private struct ModeFeedbackHUD: View {
 
     var body: some View {
         HStack(spacing: 7.5) {
-            // Accent-tinted icon circle badge with fast, snappy animated icon
+            // Mode icon
             ZStack {
                 Circle()
                     .fill(ReadingStyle.accent.opacity(0.14))
@@ -1061,7 +1061,7 @@ private struct ModeFeedbackHUD: View {
             }
             .animation(.spring(response: 0.12, dampingFraction: 0.78), value: isEditing)
 
-            // Mode title with fluid text transition
+            // Mode title
             Text(updateComplete ? "Update complete" : (isEditing ? "Editing Source" : "Reading View"))
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(Color.primary)

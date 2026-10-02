@@ -90,6 +90,7 @@
 .traffic-lights:hover span:nth-child(2)::before{content:'';position:absolute;left:2px;right:2px;top:5px;height:1px;background:rgba(112,74,0,.8)}
 .traffic-lights:hover span:nth-child(3)::before{content:'↗';position:absolute;inset:-1px 0 0;text-align:center;font:10px/12px -apple-system,sans-serif;color:rgba(4,77,15,.8)}
 
+/* Warm gold CTA with contact card's Apple silhouette and layered finish. */
 .download{height:42px;padding:0 20px;gap:9px;border-radius:8px;background:linear-gradient(180deg,#f4eab4 0%,#EDE19A 100%);color:#40391f;font-size:13px;font-weight:600;letter-spacing:-.01em;box-shadow:inset 0 1px 0 rgba(255,255,255,.65),inset 0 -1px 0 rgba(139,109,27,.12),0 0 0 1px rgba(139,109,27,.23),0 3px 7px rgba(126,100,32,.12);transition:background .18s,box-shadow .18s}
 .download::after{background:linear-gradient(180deg,rgba(255,255,255,.16),transparent 60%)}
 .download:hover{background:linear-gradient(180deg,#f7efc4,#efe4a6);box-shadow:inset 0 1px 0 rgba(255,255,255,.8),inset 0 -1px 0 rgba(139,109,27,.10),0 0 0 1px rgba(139,109,27,.28),0 4px 10px rgba(126,100,32,.15)}
@@ -237,6 +238,7 @@ body,.introduction,.identity{background-color:#FFFFFF}
   .download:active{transform:translateY(0);background:linear-gradient(180deg,#d9d9e0,#e7e7ed);box-shadow:inset 0 2px 4px rgba(0,0,0,.14),0 0 0 1px rgba(255,255,255,.25),0 1px 3px rgba(0,0,0,.24)}
 }
 
+/* Typography follows contact card's serif headline / light system subtitle pair. */
 .identity h1{font-family:"Instrument Serif",Georgia,serif;font-size:clamp(64px,6.7vw,96px);font-weight:400;line-height:1;letter-spacing:-.025em;margin:0 0 24px;padding-bottom:4px;background:linear-gradient(180deg,#1d1d1f 20%,#1d1d1f 55%,rgba(29,29,31,.65));-webkit-background-clip:text;background-clip:text;color:transparent}
 .identity .subtitle{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Helvetica,Arial,sans-serif;font-size:clamp(16px,1.55vw,20px);font-weight:300;line-height:1.625;letter-spacing:-.025em;color:#6e6e73;margin:0 0 32px;-webkit-font-smoothing:antialiased}
 @media(prefers-color-scheme:dark){.identity h1{background-image:linear-gradient(180deg,#fff 20%,#fff 55%,rgba(255,255,255,.55))}.identity .subtitle{color:#d4d4d4}}

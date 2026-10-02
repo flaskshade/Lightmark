@@ -2,7 +2,8 @@
 set -euo pipefail
 project_root="${0:A:h:h}"
 : "${NOTARY_KEYCHAIN_PROFILE:?Set the existing notarytool Keychain profile name}"
-: "${APPLE_SIGNING_IDENTITY:?Set the Developer ID Application identity}"
+: "${APPLE_SIGNING_IDENTITY:?Set the Developer ID Application signing identity}"
+export APPLE_SIGNING_IDENTITY
 export LIGHTMARK_DIST_DIR="$project_root/dist/release"
 version="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$project_root/Resources/Info.plist")"
 if [[ -n "${RELEASE_TAG:-}" && "$RELEASE_TAG" != "v$version" ]]; then

@@ -51,7 +51,10 @@ for nested in "$framework/Versions/B/XPCServices/Downloader.xpc" "$framework/Ver
   codesign "${sign_options[@]}" "$nested"
 done
 codesign "${sign_options[@]}" "$framework"
+cp "$project_root/.build/checkouts/Sparkle/LICENSE" "$app_path/Contents/Resources/Sparkle-LICENSE"
 chmod +x "$app_path/Contents/MacOS/Lightmark"
+# Remove local object-file paths from release binaries before signing.
+if [[ "$build_mode" == release ]]; then strip -S "$app_path/Contents/MacOS/Lightmark"; fi
 if [[ -n "${APPLE_SIGNING_IDENTITY:-}" ]]; then
   codesign --force --timestamp --options runtime --sign "$APPLE_SIGNING_IDENTITY" "$app_path/Contents/MacOS/Lightmark"
   codesign --force --timestamp --options runtime --sign "$APPLE_SIGNING_IDENTITY" --identifier app.lightmark.reader "$app_path"

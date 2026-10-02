@@ -71,7 +71,7 @@ private final class LightmarkUpdateDriver: SPUStandardUserDriver {
     var hasPendingOffer: Bool { pendingReply != nil }
 
     override func showUpdateFound(with appcastItem: SUAppcastItem, state: SPUUserUpdateState, reply: @escaping (SPUUserUpdateChoice) -> Void) {
-        // Let Sparkle handle exceptional informational updates and resumed installs.
+        // Informational releases retain Sparkle’s standard presentation.
         guard !appcastItem.isInformationOnlyUpdate else {
             super.showUpdateFound(with: appcastItem, state: state, reply: reply)
             return
@@ -189,6 +189,11 @@ private final class LightmarkUpdateDriver: SPUStandardUserDriver {
     }
 
     override func showUpdateNotFoundWithError(_ error: Error, acknowledgement: @escaping () -> Void) {
+        let reason = (error as NSError).userInfo[SPUNoUpdateFoundReasonKey] as? NSNumber
+        guard let reason, reason.int32Value == SPUNoUpdateFoundReason.onLatestVersion.rawValue else {
+            super.showUpdateNotFoundWithError(error, acknowledgement: acknowledgement)
+            return
+        }
         super.dismissUpdateInstallation()
         let current = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? ""
         let alert = NSAlert()
@@ -210,7 +215,7 @@ private final class LightmarkUpdateDriver: SPUStandardUserDriver {
     }
 
     override func showUpdateInFocus() {
-        if hasPendingOffer { presentOffer() } else { super.showUpdateInFocus() }
+        if hasPendingOffer && !inlineFlow { presentOffer() } else if !inlineFlow { super.showUpdateInFocus() }
     }
 
     override func dismissUpdateInstallation() {
@@ -232,7 +237,7 @@ struct CheckForUpdatesButton: View {
     @ObservedObject private var updates = AppUpdates.shared
     var body: some View {
         Button("Check for Updates…") { updates.check() }
-            .disabled(!updates.canCheck)
+            .disabled(!updates.canCheck && updates.availableVersion == nil)
     }
 }
 

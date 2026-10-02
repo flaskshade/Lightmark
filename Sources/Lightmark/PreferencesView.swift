@@ -700,6 +700,13 @@ struct PreferencesView: View {
             CheckForUpdatesButton()
                 .padding(.top, 8)
 
+            HStack(spacing: 16) {
+                Link("GitHub", destination: URL(string: "https://github.com/roycim/Lightmark")!)
+                Link("Changelog", destination: URL(string: "https://trylightmark.com/changelog/")!)
+            }
+            .font(.subheadline)
+            .padding(.top, 4)
+
             signatureView
                 .padding(.top, 24)
         }
