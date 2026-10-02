@@ -301,6 +301,7 @@ struct DocumentView: View {
 private struct DocumentContentView: View {
     @Binding var document: MarkdownDocument
     var fileURL: URL? = nil
+    @ObservedObject private var appUpdates = AppUpdates.shared
     @State private var isEditing = false
     @State private var showFeedback = false
     @State private var feedbackTask: Task<Void, Never>? = nil
@@ -398,7 +399,7 @@ private struct DocumentContentView: View {
             // Top bar header overlay
             ZStack {
                 DocumentTabBar(tabs: tabs, fallbackTitle: documentTitle)
-                    .padding(.trailing, 108)
+                    .padding(.trailing, appUpdates.availableVersion == nil ? 108 : 144)
                     .opacity(showsDocumentTabs ? 1 : 0)
                     .allowsHitTesting(showsDocumentTabs)
                     .accessibilityHidden(!showsDocumentTabs)
@@ -410,7 +411,7 @@ private struct DocumentContentView: View {
                     window: documentWindow
                 )
                 .frame(maxWidth: .infinity)
-                .padding(.horizontal, 100)
+                .padding(.horizontal, appUpdates.availableVersion == nil ? 100 : 140)
                 .opacity((showsDocumentTabs || (isDefaultNoFileView && !isEditing)) ? 0 : 1)
                 .allowsHitTesting(!showsDocumentTabs && (!isDefaultNoFileView || isEditing))
                 .accessibilityHidden(showsDocumentTabs || (isDefaultNoFileView && !isEditing))
@@ -419,15 +420,18 @@ private struct DocumentContentView: View {
             .animation(reduceHeaderMotion ? nil : .easeInOut(duration: 0.18), value: showsDocumentTabs)
             .transaction { if $0.disablesAnimations { $0.animation = nil } }
             .overlay(alignment: .trailing) {
-                if !isDefaultNoFileView || isEditing {
-                    EditModeButton(
-                        isEditing: isEditing,
-                        returnsToNewTab: isDefaultNoFileView,
-                        action: toggleEditing
-                    )
-                    .padding(.trailing, 14)
-                    .transition(.opacity)
+                HStack(spacing: 4) {
+                    HeaderUpdateButton()
+                    if !isDefaultNoFileView || isEditing {
+                        EditModeButton(
+                            isEditing: isEditing,
+                            returnsToNewTab: isDefaultNoFileView,
+                            action: toggleEditing
+                        )
+                        .transition(.opacity)
+                    }
                 }
+                .padding(.trailing, 14)
             }
         }
         .ignoresSafeArea(edges: .top)

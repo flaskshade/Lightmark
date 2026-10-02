@@ -16,6 +16,8 @@ fi
 export RELEASE_TAG="$tag"
 scripts/package-release.sh
 cp dist/release/{Lightmark.dmg,Lightmark.zip,release.json,SHA256SUMS.txt} website/downloads/
+cp dist/release/appcast.xml dist/release/Lightmark-*.zip website/downloads/
+git add website/downloads/appcast.xml website/downloads/Lightmark-*.zip
 git add website/downloads/Lightmark.dmg website/downloads/Lightmark.zip website/downloads/release.json website/downloads/SHA256SUMS.txt
 if ! git diff --cached --quiet; then
   git commit -m "Publish notarized Lightmark $version"

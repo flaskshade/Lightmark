@@ -54,4 +54,6 @@ await writeFile(`${output}/_headers`, `/*
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
   X-Frame-Options: DENY
+/downloads/appcast.xml
+  Cache-Control: no-cache
 `);

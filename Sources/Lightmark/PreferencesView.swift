@@ -697,6 +697,9 @@ struct PreferencesView: View {
                     .padding(.top, 8)
             }
 
+            CheckForUpdatesButton()
+                .padding(.top, 8)
+
             signatureView
                 .padding(.top, 24)
         }

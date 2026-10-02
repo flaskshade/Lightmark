@@ -65,10 +65,11 @@ const mobileDevice = () => /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
 download.addEventListener('click', event => {
   if (!mobileDevice()) return;
   event.preventDefault();
-  downloadLink.value = new URL(download.getAttribute('href'), location.href).href;
+  downloadLink.textContent = new URL(download.getAttribute('href'), location.href).href;
   copyStatus.textContent = '';
   clearTimeout(copyTimer);
   copyButton.removeAttribute('data-copied');
+  copyButton.querySelector('span').textContent = 'Copy link';
   modalScrollY = globalThis.scrollY;
   document.body.style.position = 'fixed';
   document.body.style.top = `-${modalScrollY}px`;
@@ -91,15 +92,19 @@ modal.addEventListener('close', () => {
 });
 copyButton.addEventListener('click', async () => {
   try {
-    await copyText(downloadLink.value);
+    await copyText(downloadLink.textContent);
     copyButton.dataset.copied = 'true';
+    copyButton.querySelector('span').textContent = 'Copied';
     copyStatus.textContent = 'Link copied.';
     clearTimeout(copyTimer);
-    copyTimer = setTimeout(() => { copyButton.removeAttribute('data-copied'); copyStatus.textContent = ''; }, 2000);
+    copyTimer = setTimeout(() => { copyButton.removeAttribute('data-copied'); copyButton.querySelector('span').textContent = 'Copy link'; copyStatus.textContent = ''; }, 2000);
   } catch {
     downloadLink.focus();
-    downloadLink.select();
-    downloadLink.setSelectionRange(0, downloadLink.value.length);
+    const range = document.createRange();
+    range.selectNodeContents(downloadLink);
+    const selection = globalThis.getSelection();
+    selection.removeAllRanges();
+    selection.addRange(range);
     copyStatus.textContent = 'Touch and hold the selected link to copy it.';
   }
 });

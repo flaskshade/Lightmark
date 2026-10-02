@@ -12,6 +12,7 @@ struct LightmarkApp: App {
     var body: some Scene {
         Settings { PreferencesView() }
         .commands {
+            CommandGroup(after: .appInfo) { CheckForUpdatesButton() }
             #if DEBUG
             DesignPreviewCommands()
             #endif
@@ -95,6 +96,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        AppUpdates.shared.start()
         FirstLaunch.shared.start()
         DispatchQueue.main.async {
             if !self.hasOpenedFile && NSDocumentController.shared.documents.isEmpty { DocumentTabs.newWindow() }

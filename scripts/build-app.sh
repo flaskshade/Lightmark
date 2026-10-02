@@ -19,6 +19,7 @@ swift build -c "$build_mode" --disable-sandbox \
   --cache-path "$project_root/.build/package-cache" \
   --config-path "$project_root/.build/package-config" \
   --security-path "$project_root/.build/package-security" \
+  -Xlinker -rpath -Xlinker @executable_path/../Frameworks \
   -Xlinker -platform_version -Xlinker macos \
   -Xlinker "$minimum_macos_version" -Xlinker "$sdk_macos_version"
 
@@ -39,6 +40,17 @@ xcrun actool "$project_root/.build/IconAssets.xcassets" \
   --target-device mac --app-icon AppIcon \
   --output-partial-info-plist "$project_root/.build/icon-info.plist" \
   --output-format human-readable-text
+mkdir -p "$app_path/Contents/Frameworks"
+ditto "$project_root/.build/artifacts/sparkle/Sparkle/Sparkle.xcframework/macos-arm64_x86_64/Sparkle.framework" "$app_path/Contents/Frameworks/Sparkle.framework"
+# Re-sign nested executables from the inside out with the app's identity.
+framework="$app_path/Contents/Frameworks/Sparkle.framework"
+identity="${APPLE_SIGNING_IDENTITY:--}"
+sign_options=(--force --sign "$identity")
+if [[ "$identity" != - ]]; then sign_options+=(--timestamp --options runtime); fi
+for nested in "$framework/Versions/B/XPCServices/Downloader.xpc" "$framework/Versions/B/XPCServices/Installer.xpc" "$framework/Versions/B/Autoupdate" "$framework/Versions/B/Updater.app"; do
+  codesign "${sign_options[@]}" "$nested"
+done
+codesign "${sign_options[@]}" "$framework"
 chmod +x "$app_path/Contents/MacOS/Lightmark"
 if [[ -n "${APPLE_SIGNING_IDENTITY:-}" ]]; then
   codesign --force --timestamp --options runtime --sign "$APPLE_SIGNING_IDENTITY" "$app_path/Contents/MacOS/Lightmark"
