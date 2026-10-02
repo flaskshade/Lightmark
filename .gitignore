@@ -14,3 +14,7 @@ Renderer/node_modules/
 
 # Machine-specific operational notes
 .local/
+
+# Local project context and working release notes
+/Blueprint.md
+/CHANGELOG.md
