@@ -8,7 +8,6 @@ func label(_ text: String, _ rect: NSRect, _ size: CGFloat, _ color: NSColor) {
     (text as NSString).draw(in: rect, withAttributes: [.font: NSFont.systemFont(ofSize: size, weight: .regular), .foregroundColor: color, .paragraphStyle: style])
 }
 label("→", NSRect(x: 240, y: 168, width: 80, height: 45), 34, .systemGray)
-label("Drag Lightmark to Applications", NSRect(x: 40, y: 45, width: 480, height: 26), 15, .darkGray)
 image.unlockFocus()
 let bitmap = NSBitmapImageRep(data: image.tiffRepresentation!)!
 try bitmap.representation(using: .png, properties: [:])!.write(to: URL(fileURLWithPath: CommandLine.arguments[1]))

@@ -4,6 +4,6 @@
   "architecture": "arm64",
   "minimumMacOS": "14.0",
   "downloadURL": "https://trylightmark.com/downloads/Lightmark.dmg",
-  "size": 5132748,
-  "sha256": "e55e655f74bc634e2442fd2b73e76d489cf299a378273e2c499d5604162d1fbd"
+  "size": 5129395,
+  "sha256": "23bb93c85b4557ea0fd21aada8499db989ceeb922609544fd442a345033cb8f0"
 }
