@@ -3,6 +3,8 @@ await build({ entryPoints: ['src/main.js'], bundle: true, minify: true, target: 
 
 await build({ entryPoints: ['src/contact-card.js'], bundle: true, minify: true, target: 'safari17', outfile: 'assets/contact-card.js' });
 
+await build({ entryPoints: ['src/web-analytics.js'], bundle: true, minify: true, target: 'safari17', outfile: 'assets/web-analytics.js' });
+
 // Preserve the notices of dependencies shipped inside the static JS bundle.
 import { readdir, readFile, writeFile } from 'node:fs/promises';
 let notices = 'Lightmark website — bundled third-party licenses\n';
