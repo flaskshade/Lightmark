@@ -701,8 +701,8 @@ struct PreferencesView: View {
                 .padding(.top, 8)
 
             HStack(spacing: 16) {
-                Link("GitHub", destination: URL(string: "https://github.com/roycim/Lightmark")!)
-                Link("Changelog", destination: URL(string: "https://trylightmark.com/changelog/")!)
+                AboutLink("GitHub", destination: URL(string: "https://github.com/roycim/Lightmark")!)
+                AboutLink("Changelog", destination: URL(string: "https://trylightmark.com/changelog/")!)
             }
             .font(.subheadline)
             .padding(.top, 4)
@@ -1507,3 +1507,26 @@ private struct ShortcutRow: View {
     }
 }
 
+
+private struct AboutLink: View {
+    let title: String
+    let destination: URL
+    @State private var hovering = false
+
+    init(_ title: String, destination: URL) {
+        self.title = title
+        self.destination = destination
+    }
+
+    var body: some View {
+        Link(destination: destination) {
+            Text(title)
+                .underline(hovering)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 4)
+                .background(hovering ? Color.accentColor.opacity(0.08) : .clear, in: RoundedRectangle(cornerRadius: 5))
+        }
+        .onHover { hovering = $0 }
+        .help(destination.absoluteString)
+    }
+}
