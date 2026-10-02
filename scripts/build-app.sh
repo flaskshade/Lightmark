@@ -30,6 +30,14 @@ cp "$project_root/Resources/Info.plist" "$app_path/Contents/Info.plist"
 if [[ -d "$project_root/Resources/Fonts" ]]; then
   cp "$project_root/Resources/Fonts"/* "$app_path/Contents/Resources/Fonts/"
 fi
+cp -R "$project_root/Resources/Reader" "$app_path/Contents/Resources/"
+python3 "$project_root/scripts/build-icons.py"
+xcrun actool "$project_root/.build/IconAssets.xcassets" \
+  --compile "$app_path/Contents/Resources" \
+  --platform macosx --minimum-deployment-target "$minimum_macos_version" \
+  --target-device mac --app-icon AppIcon \
+  --output-partial-info-plist "$project_root/.build/icon-info.plist" \
+  --output-format human-readable-text
 chmod +x "$app_path/Contents/MacOS/Lightmark"
 codesign --force --deep --sign - --identifier app.lightmark.reader "$app_path"
 print "$app_path"

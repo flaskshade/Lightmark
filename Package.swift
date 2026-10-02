@@ -9,7 +9,7 @@ let package = Package(
     ],
     targets: [
         .target(name: "LightmarkCore"),
-        .executableTarget(name: "Lightmark", dependencies: ["LightmarkCore"]),
+        .executableTarget(name: "Lightmark"),
         .testTarget(name: "LightmarkCoreTests", dependencies: ["LightmarkCore"])
     ]
 )

@@ -7,7 +7,26 @@ import SwiftUI
 final class DocumentTabs: NSObject, ObservableObject {
     static let shared = DocumentTabs()
 
-    struct Item: Identifiable {
+    private static var additionalGroups: [DocumentTabs] = []
+    private static weak var lastActiveGroup: DocumentTabs?
+    private static weak var preparingGroup: DocumentTabs?
+    private static var groups: [DocumentTabs] { [shared] + additionalGroups }
+    static var current: DocumentTabs {
+        if let preparingGroup { return preparingGroup }
+        if let key = NSApp.keyWindow, let owner = groups.first(where: { $0.windows.contains(where: { $0 === key }) }) { return owner }
+        return lastActiveGroup ?? shared
+    }
+    static func owner(of window: NSWindow) -> DocumentTabs {
+        groups.first(where: { $0.windows.contains(where: { $0 === window }) }) ?? preparingGroup ?? current
+    }
+    static func newWindow() {
+        let group = DocumentTabs()
+        additionalGroups.append(group)
+        group.newTab()
+        if group.windows.isEmpty { additionalGroups.removeAll { $0 === group } }
+    }
+
+    struct Item: Identifiable, Equatable {
         let id: ObjectIdentifier
         let window: NSWindow
         let title: String
@@ -17,6 +36,7 @@ final class DocumentTabs: NSObject, ObservableObject {
     }
 
     @Published private(set) var items: [Item] = []
+    @Published private(set) var closingTabIDs = Set<ObjectIdentifier>()
 
     private var windows: [NSWindow] = []
     private weak var selectedWindow: NSWindow?
@@ -46,6 +66,7 @@ final class DocumentTabs: NSObject, ObservableObject {
             MainActor.assumeIsolated {
                 guard let self, !self.isPreparingDocument, !self.isActivating,
                       self.windows.contains(where: { $0 === window }) else { return }
+                Self.lastActiveGroup = self
                 if self.selectedWindow !== window {
                     self.activate(window)
                 } else {
@@ -96,7 +117,8 @@ final class DocumentTabs: NSObject, ObservableObject {
         }
 
         isPreparingDocument = true
-        defer { isPreparingDocument = false }
+        Self.preparingGroup = self
+        defer { isPreparingDocument = false; Self.preparingGroup = nil }
         do {
             let document = try NSDocumentController.shared.openUntitledDocumentAndDisplay(false)
             if document.windowControllers.isEmpty { document.makeWindowControllers() }
@@ -111,7 +133,12 @@ final class DocumentTabs: NSObject, ObservableObject {
             }
             window.contentView?.layoutSubtreeIfNeeded()
             isPreparingDocument = false
-            register(window, mode: .tabbed)
+            let mode = WindowOpeningMode.from(stored: UserDefaults.standard.string(forKey: "windowOpeningMode") ?? "windows")
+            if mode == .tabbed {
+                register(window, mode: mode)
+            } else {
+                window.makeKeyAndOrderFront(nil)
+            }
             return document
         } catch {
             NSApp.presentError(error)
@@ -136,6 +163,7 @@ final class DocumentTabs: NSObject, ObservableObject {
             var presentationError = error
             if let document, error == nil, display {
                 isPreparingDocument = true
+                Self.preparingGroup = self
                 if document.windowControllers.isEmpty { document.makeWindowControllers() }
                 let mode = WindowOpeningMode.from(stored: UserDefaults.standard.string(forKey: "windowOpeningMode") ?? "windows")
                 for controller in document.windowControllers {
@@ -145,7 +173,10 @@ final class DocumentTabs: NSObject, ObservableObject {
                     window.contentView?.layoutSubtreeIfNeeded()
                     isPreparingDocument = false
                     if mode == .tabbed {
-                        if windows.contains(where: { $0 === window }) {
+                        let owner = Self.owner(of: window)
+                        if owner !== self {
+                            owner.activate(window)
+                        } else if windows.contains(where: { $0 === window }) {
                             activate(window)
                         } else {
                             register(window, mode: mode)
@@ -158,6 +189,7 @@ final class DocumentTabs: NSObject, ObservableObject {
                     presentationError = CocoaError(.fileReadUnknown)
                 }
                 isPreparingDocument = false
+                Self.preparingGroup = nil
             }
             if let document, presentationError == nil, let fileURL = document.fileURL {
                 RecentDocumentsStore.shared.register(url: fileURL)
@@ -171,12 +203,24 @@ final class DocumentTabs: NSObject, ObservableObject {
         guard !isActivating, !closedWindows.contains(window) else { return }
         isActivating = true
         defer { isActivating = false }
+        let activeKey = NSApp.keyWindow
+        let isNonDocumentActive = activeKey != nil && activeKey !== window && activeKey?.tabbingIdentifier != "LightmarkDocument"
+
         if let previous = selectedWindow, previous !== window {
             window.setFrame(previous.frame, display: false)
         }
         selectedWindow = window
+        Self.lastActiveGroup = self
         window.animationBehavior = .none
-        window.makeKeyAndOrderFront(nil)
+        window.collectionBehavior.remove(.canJoinAllSpaces)
+        window.collectionBehavior.insert(.moveToActiveSpace)
+
+        if isNonDocumentActive, let activeKey {
+            window.order(.below, relativeTo: activeKey.windowNumber)
+        } else {
+            window.makeKeyAndOrderFront(nil)
+        }
+
         // Hide every sibling, including any window revealed by a system action.
         for sibling in windows where sibling !== window { sibling.orderOut(nil) }
         refresh()
@@ -204,31 +248,18 @@ final class DocumentTabs: NSObject, ObservableObject {
         activate(item.window)
     }
 
-    private var pendingCloses = Set<ObjectIdentifier>()
-
-    func close(_ item: Item) {
-        guard windows.contains(where: { $0 === item.window }) else { return }
-        guard let document = document(for: item.window) else {
-            item.window.performClose(nil)
-            return
-        }
-        if !document.isDocumentEdited {
-            document.close()
-            return
-        }
-        let id = ObjectIdentifier(document)
-        guard pendingCloses.insert(id).inserted else { return }
-        // Unsaved documents need a visible window for their save/cancel sheet.
-        if document.isDocumentEdited { activate(item.window) }
-        document.canClose(withDelegate: self,
-                          shouldClose: #selector(document(_:shouldClose:contextInfo:)),
-                          contextInfo: nil)
+    func closeActiveTab() {
+        guard let selectedWindow,
+              let item = items.first(where: { $0.window === selectedWindow }) else { return }
+        close(item)
     }
 
-    @objc private func document(_ document: NSDocument, shouldClose: Bool,
-                                contextInfo: UnsafeMutableRawPointer?) {
-        defer { pendingCloses.remove(ObjectIdentifier(document)) }
-        if shouldClose { document.close() }
+    var presentationWindow: NSWindow? { selectedWindow }
+
+    func close(_ item: Item) {
+        guard windows.contains(where: { $0 === item.window }),
+              let document = document(for: item.window) else { return }
+        DocumentCloseCoordinator.shared.close(document)
     }
 
     /// A file chosen in a blank document replaces it in either window mode.
@@ -244,7 +275,9 @@ final class DocumentTabs: NSObject, ObservableObject {
             if let item = items.first(where: { $0.window === existingWindow }) {
                 select(item)
             } else {
-                existingWindow.makeKeyAndOrderFront(nil)
+                if WindowOpeningMode.from(stored: UserDefaults.standard.string(forKey: "windowOpeningMode") ?? "windows") == .tabbed {
+                    Self.owner(of: existingWindow).activate(existingWindow)
+                } else { existingWindow.makeKeyAndOrderFront(nil) }
             }
             RecentDocumentsStore.shared.register(url: url)
             document.close()
@@ -290,29 +323,62 @@ final class DocumentTabs: NSObject, ObservableObject {
     }
 
     func refresh() {
-        items = windows.map { window in
+        let updated = windows.map { window in
             let title = resolveTabTitle(for: window)
             return Item(id: ObjectIdentifier(window), window: window, title: title,
                         isSelected: window === selectedWindow, isEdited: document(for: window)?.isDocumentEdited ?? window.isDocumentEdited,
                         fileURL: window.representedURL)
         }
+        if items != updated { items = updated }
     }
 
     func changeMode(to mode: WindowOpeningMode) {
-        let current = selectedWindow ?? NSApp.keyWindow
+        let activeKey = NSApp.keyWindow
+        let isNonDocumentActive = activeKey != nil && activeKey?.tabbingIdentifier != "LightmarkDocument"
+
+        if mode == .separateWindows {
+            for group in Self.groups { group.applyMode(to: mode, activeNonDocWindow: isNonDocumentActive ? activeKey : nil) }
+        } else {
+            applyMode(to: mode, activeNonDocWindow: isNonDocumentActive ? activeKey : nil)
+        }
+
+        NotificationCenter.default.post(name: .documentTabGroupsDidChange, object: nil)
+        if isNonDocumentActive, let activeKey {
+            activeKey.makeKeyAndOrderFront(nil)
+            DispatchQueue.main.async {
+                activeKey.makeKeyAndOrderFront(nil)
+            }
+        }
+    }
+
+    private func applyMode(to mode: WindowOpeningMode, activeNonDocWindow: NSWindow? = nil) {
+        let currentDoc = selectedWindow ?? windows.first ?? NSApp.windows.first(where: { $0.tabbingIdentifier == "LightmarkDocument" && !$0.isMiniaturized })
         if mode == .separateWindows {
             let groupedWindows = windows
             windows.removeAll()
             selectedWindow = nil
             refresh()
-            var cascadePoint = current.map { NSPoint(x: $0.frame.minX, y: $0.frame.maxY) } ?? .zero
-            for window in groupedWindows where window !== current {
+            var cascadePoint = currentDoc.map { NSPoint(x: $0.frame.minX, y: $0.frame.maxY) } ?? .zero
+            for window in groupedWindows where window !== currentDoc {
+                window.collectionBehavior.remove(.moveToActiveSpace)
                 window.windowController?.shouldCascadeWindows = true
                 cascadePoint = window.cascadeTopLeft(from: cascadePoint)
-                window.orderFront(nil)
+                if let activeNonDocWindow {
+                    window.order(.below, relativeTo: activeNonDocWindow.windowNumber)
+                } else {
+                    window.orderFront(nil)
+                }
             }
-            current?.windowController?.shouldCascadeWindows = true
-            current?.makeKeyAndOrderFront(nil)
+            currentDoc?.collectionBehavior.remove(.moveToActiveSpace)
+            currentDoc?.windowController?.shouldCascadeWindows = true
+            if let activeNonDocWindow {
+                if let currentDoc {
+                    currentDoc.order(.below, relativeTo: activeNonDocWindow.windowNumber)
+                }
+                activeNonDocWindow.makeKeyAndOrderFront(nil)
+            } else {
+                currentDoc?.makeKeyAndOrderFront(nil)
+            }
             return
         }
         let documentWindows = NSApp.windows.filter {
@@ -321,11 +387,14 @@ final class DocumentTabs: NSObject, ObservableObject {
         for window in documentWindows where !windows.contains(where: { $0 === window }) {
             register(window, mode: mode)
         }
-        if let item = items.first(where: { $0.window === current }) { select(item) }
+        if let currentDoc, let item = items.first(where: { $0.window === currentDoc }) {
+            select(item)
+        }
     }
 
     private func removeClosedWindow(_ window: NSWindow) {
         closedWindows.add(window)
+        closingTabIDs.remove(ObjectIdentifier(window))
         guard let index = windows.firstIndex(where: { $0 === window }) else { return }
         windows.remove(at: index)
         if selectedWindow === window {
@@ -333,11 +402,17 @@ final class DocumentTabs: NSObject, ObservableObject {
             selectedWindow = next
             if let next {
                 next.setFrame(window.frame, display: false)
+                next.collectionBehavior.remove(.canJoinAllSpaces)
+                next.collectionBehavior.insert(.moveToActiveSpace)
                 next.makeKeyAndOrderFront(nil)
             }
         }
-        withAnimation(.snappy(duration: 0.20, extraBounce: 0)) {
+        withAnimation(.snappy(duration: 0.22, extraBounce: 0.0)) {
             refresh()
+        }
+        if windows.isEmpty {
+            Self.additionalGroups.removeAll { $0 === self }
+            if Self.lastActiveGroup === self { Self.lastActiveGroup = nil }
         }
     }
 }
@@ -550,7 +625,7 @@ private struct CustomTabScrollBar: View {
         GeometryReader { geo in
             let availableWidth = max(0, geo.size.width)
             let isOverflowing = controller.contentWidth > (availableWidth + 1)
-            let shouldShow = isOverflowing && (isTabBarHovered || controller.isDragging || controller.isRecentlyScrolled)
+            let shouldShow = isOverflowing && (isHovering || isTabBarHovered || controller.isDragging || controller.isRecentlyScrolled)
             let maxScroll = max(1.0, controller.contentWidth - availableWidth)
             let ratio = controller.contentWidth > 0 ? min(1.0, availableWidth / controller.contentWidth) : 1.0
             let thumbWidth = max(36.0, min(availableWidth, availableWidth * ratio))
@@ -577,8 +652,10 @@ private struct CustomTabScrollBar: View {
                     .offset(x: thumbOffset)
             }
             .frame(maxHeight: .infinity, alignment: .bottom)
+            .background(Color.clear)
             .contentShape(Rectangle())
             .onHover { hovering in
+                NSCursor.arrow.set()
                 withAnimation(.easeInOut(duration: 0.15)) {
                     isHovering = hovering
                 }
@@ -611,7 +688,7 @@ private struct CustomTabScrollBar: View {
                     }
             )
             .opacity(shouldShow ? 1.0 : 0.0)
-            .allowsHitTesting(shouldShow)
+            .allowsHitTesting(isOverflowing)
             .animation(.easeInOut(duration: 0.20), value: shouldShow)
         }
     }
@@ -659,6 +736,7 @@ struct DocumentTabBar: View {
                                     DocumentTab(
                                         item: item,
                                         width: tabWidth,
+                                        isClosing: tabs.closingTabIDs.contains(item.id),
                                         select: {
                                             tabs.select(item)
                                             scrollProxy.scrollTo(item.id, anchor: nil)
@@ -789,12 +867,15 @@ private struct TabScrollPreferenceKey: PreferenceKey {
 private struct DocumentTab: View {
     let item: DocumentTabs.Item
     let width: CGFloat
+    let isClosing: Bool
     let select: () -> Void
     let close: () -> Void
     @State private var isTabHovering = false
     @State private var isTitleHovering = false
     @State private var isCloseHovering = false
-    @State private var isClosing = false
+    @State private var isRenameCooldownActive = false
+    @State private var isCursorInsideTitle = false
+    @State private var cooldownTask: Task<Void, Never>? = nil
 
     private var isCompact: Bool {
         width < 155
@@ -802,15 +883,22 @@ private struct DocumentTab: View {
 
     private func handleClose() {
         guard !isClosing else { return }
-        if item.isEdited {
-            close()
-            return
-        }
-        withAnimation(.easeOut(duration: 0.12)) {
-            isClosing = true
-        }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
-            close()
+        close()
+    }
+
+    private func startCooldown() {
+        isRenameCooldownActive = true
+        isTitleHovering = false
+        cooldownTask?.cancel()
+        cooldownTask = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 2_000_000_000)
+            guard !Task.isCancelled else { return }
+            isRenameCooldownActive = false
+            if isCursorInsideTitle && item.isSelected {
+                withAnimation(.spring(response: 0.22, dampingFraction: 0.8)) {
+                    isTitleHovering = true
+                }
+            }
         }
     }
 
@@ -821,6 +909,7 @@ private struct DocumentTab: View {
                 if item.isSelected {
                     if let fileURL = item.fileURL {
                         Button(action: {
+                            guard !isRenameCooldownActive else { return }
                             DocumentActionHelper.triggerRenameOrSave(for: item.window, fileURL: fileURL)
                         }) {
                             tabTitleContent(hasChevron: true)
@@ -828,19 +917,28 @@ private struct DocumentTab: View {
                                 .frame(height: 26)
                                 .background(
                                     RoundedRectangle(cornerRadius: 5.5, style: .continuous)
-                                        .fill(isTitleHovering ? Color(nsColor: .quaternaryLabelColor).opacity(0.60) : Color.clear)
+                                        .fill((isTitleHovering && !isRenameCooldownActive) ? Color(nsColor: .quaternaryLabelColor).opacity(0.60) : Color.clear)
                                 )
                                 .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
                         .onHover { hovering in
-                            withAnimation(.spring(response: 0.22, dampingFraction: 0.8)) {
-                                isTitleHovering = hovering
+                            isCursorInsideTitle = hovering
+                            if hovering {
+                                if !isRenameCooldownActive {
+                                    withAnimation(.spring(response: 0.22, dampingFraction: 0.8)) {
+                                        isTitleHovering = true
+                                    }
+                                }
+                            } else {
+                                withAnimation(.spring(response: 0.22, dampingFraction: 0.8)) {
+                                    isTitleHovering = false
+                                }
                             }
                         }
                         .animation(.spring(response: 0.22, dampingFraction: 0.8), value: isTitleHovering)
                         .accessibilityLabel("Document Title: \(item.title) — Click to rename or move")
-                        .help("Document Title — Click to rename or move")
+                        .help(isRenameCooldownActive ? (item.fileURL?.path ?? item.title) : "Document Title — Click to rename or move")
                     } else {
                         // Untitled / New tab: Static label, NOT clickable, no hover button, no chevron, no Finder modal
                         tabTitleContent(hasChevron: false)
@@ -850,7 +948,10 @@ private struct DocumentTab: View {
 
                     Spacer(minLength: 0)
                 } else {
-                    Button(action: select) {
+                    Button(action: {
+                        startCooldown()
+                        select()
+                    }) {
                         HStack(spacing: isCompact ? 4 : 5) {
                             if item.isEdited {
                                 Circle()
@@ -908,6 +1009,7 @@ private struct DocumentTab: View {
         .scaleEffect(isClosing ? 0.88 : 1.0)
         .opacity(isClosing ? 0.0 : 1.0)
         .allowsHitTesting(!isClosing)
+        .animation(.easeOut(duration: 0.12), value: isClosing)
         .background {
             RoundedRectangle(cornerRadius: 8, style: .continuous)
                 .fill(
@@ -932,6 +1034,15 @@ private struct DocumentTab: View {
         }
         .animation(.spring(response: 0.22, dampingFraction: 0.8), value: isTabHovering)
 
+        .onChange(of: item.isSelected) { wasSelected, isSelected in
+            if isSelected && !wasSelected {
+                startCooldown()
+            } else if !isSelected {
+                cooldownTask?.cancel()
+                isRenameCooldownActive = false
+                isTitleHovering = false
+            }
+        }
         .help(item.fileURL != nil ? (item.isSelected ? "Document Title — Click to rename or move" : (item.fileURL?.path ?? item.title)) : (item.isSelected ? "Click to save document" : item.title))
         .contextMenu {
             if item.fileURL != nil {
@@ -1005,12 +1116,13 @@ private struct DocumentTab: View {
                 .layoutPriority(1)
 
             if hasChevron {
+                let showChevron = isTitleHovering && !isRenameCooldownActive
                 Image(systemName: "chevron.down")
                     .font(.system(size: 8, weight: .semibold))
                     .foregroundStyle(Color.primary.opacity(0.85))
-                    .opacity(isTitleHovering ? 1.0 : 0.0)
-                    .scaleEffect(isTitleHovering ? 1.0 : 0.65)
-                    .offset(x: isTitleHovering ? 0 : -3)
+                    .opacity(showChevron ? 1.0 : 0.0)
+                    .scaleEffect(showChevron ? 1.0 : 0.65)
+                    .offset(x: showChevron ? 0 : -3)
                     .padding(.leading, 1)
             }
         }

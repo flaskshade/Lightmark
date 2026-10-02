@@ -60,6 +60,9 @@ enum ReadingFont: String, CaseIterable, Identifiable {
     case instrumentSerif = "instrumentSerif"
     case monospaced = "monospaced"
 
+    static let headingOptions: [ReadingFont] = [.system, .instrumentSerif, .monospaced]
+    static let bodyOptions: [ReadingFont] = [.system, .monospaced]
+
     var id: String { rawValue }
 
     var title: String {

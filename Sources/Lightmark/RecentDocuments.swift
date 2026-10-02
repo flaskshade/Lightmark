@@ -42,7 +42,11 @@ final class RecentDocumentsStore: ObservableObject {
         }
         UserDefaults.standard.set(current, forKey: userDefaultsKey)
         NSDocumentController.shared.noteNewRecentDocumentURL(url)
-        refresh()
+        var transaction = Transaction(animation: nil)
+        transaction.disablesAnimations = true
+        withTransaction(transaction) {
+            refresh()
+        }
     }
 
     func clear() {
@@ -246,7 +250,7 @@ struct RecentFileListRowView: View {
         .contextMenu {
             Button("Open Document") { onOpen() }
             Button("Open in Separate Window") {
-                DocumentTabs.shared.openDocument(withContentsOf: item.url, display: true) { _, _, _ in }
+                DocumentTabs.current.openDocument(withContentsOf: item.url, display: true) { _, _, _ in }
             }
             Divider()
             Button("Show in Finder") {
@@ -397,7 +401,7 @@ struct RecentFileCardView: View {
         .contextMenu {
             Button("Open Document") { onOpen() }
             Button("Open in Separate Window") {
-                DocumentTabs.shared.openDocument(withContentsOf: item.url, display: true) { _, _, _ in }
+                DocumentTabs.current.openDocument(withContentsOf: item.url, display: true) { _, _, _ in }
             }
             Divider()
             Button("Show in Finder") {
@@ -634,6 +638,7 @@ struct RecentFilesSuggestionsSection: View {
                                 }
                             }
                             .frame(maxWidth: .infinity)
+                            .transaction { $0.animation = nil }
                         } else {
                             LazyVGrid(columns: gridColumns, alignment: .leading, spacing: 10) {
                                 ForEach(store.recentItems) { item in
@@ -643,13 +648,16 @@ struct RecentFilesSuggestionsSection: View {
                                 }
                             }
                             .frame(maxWidth: .infinity)
+                            .transaction { $0.animation = nil }
                         }
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.horizontal, 18)
                     .padding(.top, 4)
                     .padding(.bottom, 28)
+                    .transaction { $0.animation = nil }
                 }
+                .transaction { $0.animation = nil }
             }
         }
     }

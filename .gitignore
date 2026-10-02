@@ -2,3 +2,12 @@
 dist/
 .DS_Store
 *.swp
+
+Renderer/node_modules/
+
+.codex/
+.agents/
+.env
+.env.*
+*.p12
+*.p8

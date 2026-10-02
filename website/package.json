@@ -1,0 +1,8 @@
+{
+  "name": "lightmark-website",
+  "private": true,
+  "type": "module",
+  "scripts": { "build": "node build.mjs", "dev": "python3 -m http.server 4173 --bind 127.0.0.1" },
+  "dependencies": { "markdown-it": "15.0.2", "dompurify": "3.4.16" },
+  "devDependencies": { "esbuild": "0.28.2" }
+}

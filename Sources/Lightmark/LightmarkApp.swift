@@ -3,7 +3,6 @@ import UniformTypeIdentifiers
 
 @main
 struct LightmarkApp: App {
-    @Environment(\.newDocument) private var newDocument
     @AppStorage("windowOpeningMode") private var windowOpeningMode = WindowOpeningMode.separateWindows.rawValue
 
     private var usesTabs: Bool { WindowOpeningMode.from(stored: windowOpeningMode) == .tabbed }
@@ -11,26 +10,39 @@ struct LightmarkApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
     var body: some Scene {
-        DocumentGroup(newDocument: MarkdownDocument()) { file in
-            DocumentView(document: file.$document, fileURL: file.fileURL)
-        }
-        .defaultSize(width: 1040, height: 760)
-        .windowStyle(.hiddenTitleBar)
+        Settings { PreferencesView() }
         .commands {
+            #if DEBUG
+            DesignPreviewCommands()
+            #endif
             CommandGroup(replacing: .newItem) {
                 Button("New Window") {
-                    newDocument(contentType: MarkdownDocument.markdownType)
+                    DocumentTabs.newWindow()
                 }
                 .keyboardShortcut("n")
 
                 if usesTabs {
                     Button("New Tab") {
-                        DocumentTabs.shared.newTab()
+                        DocumentTabs.current.newTab()
                     }
                     .keyboardShortcut("t")
                 }
             }
 
+            CommandGroup(replacing: .saveItem) {
+                Button("Save") { NSApp.sendAction(#selector(NSDocument.save(_:)), to: nil, from: nil) }
+                    .keyboardShortcut("s")
+                Button("Save As…") { NSApp.sendAction(#selector(NSDocument.saveAs(_:)), to: nil, from: nil) }
+                    .keyboardShortcut("s", modifiers: [.command, .shift])
+            }
+            CommandGroup(after: .newItem) {
+                Button("Open…") { NSDocumentController.shared.openDocument(nil) }.keyboardShortcut("o")
+                Button("Close") { NSApp.keyWindow?.performClose(nil) }.keyboardShortcut("w")
+            }
+            CommandGroup(replacing: .undoRedo) {
+                Button("Undo") { NSApp.keyWindow?.undoManager?.undo() }.keyboardShortcut("z")
+                Button("Redo") { NSApp.keyWindow?.undoManager?.redo() }.keyboardShortcut("z", modifiers: [.command, .shift])
+            }
             CommandGroup(after: .pasteboard) {
                 Button("Toggle Edit Mode") {
                     NotificationCenter.default.post(name: .toggleEditMode, object: nil)
@@ -45,35 +57,47 @@ struct LightmarkApp: App {
 
             if usesTabs {
                 CommandMenu("Tabs") {
-                Button("Next Tab") { DocumentTabs.shared.selectRelative(1) }
-                    .keyboardShortcut("]", modifiers: [.command, .shift])
-                Button("Previous Tab") { DocumentTabs.shared.selectRelative(-1) }
-                    .keyboardShortcut("[", modifiers: [.command, .shift])
+                    Button("Next Tab") { DocumentTabs.current.selectRelative(1) }
+                        .keyboardShortcut("]", modifiers: [.command, .shift])
+                    Button("Previous Tab") { DocumentTabs.current.selectRelative(-1) }
+                        .keyboardShortcut("[", modifiers: [.command, .shift])
+                    Divider()
+                    Button("Close Tab") { DocumentTabs.current.closeActiveTab() }
                 }
             }
         }
 
-        Settings {
-            PreferencesView()
-        }
 
-        #if DEBUG
-        WindowGroup(for: String.self) { _ in
-            DesignPreview()
-        }
-        .defaultSize(width: 860, height: 620)
-        .commands {
-            DesignPreviewCommands()
-        }
-        #endif
     }
 }
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
+    private let documentController = LightmarkDocumentController()
     private var hasOpenedFile = false
+    private var reviewingQuit = false
+
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        guard !reviewingQuit else { return .terminateLater }
+        guard !DocumentCloseCoordinator.shared.hasPendingReview,
+              !NSApp.windows.contains(where: { $0.attachedSheet != nil }) else { return .terminateCancel }
+        reviewingQuit = true
+        DispatchQueue.main.async {
+            NSDocumentController.shared.closeAllDocuments(withDelegate: self,
+                didCloseAllSelector: #selector(self.didReviewQuit(_:didCloseAll:contextInfo:)), contextInfo: nil)
+        }
+        return .terminateLater
+    }
+
+    @objc private func didReviewQuit(_ controller: NSDocumentController, didCloseAll: Bool, contextInfo: UnsafeMutableRawPointer?) {
+        reviewingQuit = false
+        NSApp.reply(toApplicationShouldTerminate: didCloseAll)
+    }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        DispatchQueue.main.async {
+            if !self.hasOpenedFile && NSDocumentController.shared.documents.isEmpty { DocumentTabs.newWindow() }
+        }
         CustomFonts.registerOnce()
         AppTheme.apply(stored: UserDefaults.standard.string(forKey: "appTheme") ?? "system")
         UserDefaults.standard.register(defaults: [
@@ -84,7 +108,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             if !arg.hasPrefix("-") && FileManager.default.fileExists(atPath: arg) {
                 hasOpenedFile = true
                 let url = URL(fileURLWithPath: arg)
-                DocumentTabs.shared.openDocument(withContentsOf: url, display: true) { _, _, error in
+                DocumentTabs.current.openDocument(withContentsOf: url, display: true) { _, _, error in
                     if let error { NSApp.presentError(error) }
                 }
             }
@@ -94,7 +118,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func application(_ application: NSApplication, open urls: [URL]) {
         hasOpenedFile = true
         for url in urls {
-            DocumentTabs.shared.openDocument(withContentsOf: url, display: true) { _, _, error in
+            DocumentTabs.current.openDocument(withContentsOf: url, display: true) { _, _, error in
                     if let error { NSApp.presentError(error) }
                 }
         }
@@ -103,7 +127,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func application(_ sender: NSApplication, openFile filename: String) -> Bool {
         hasOpenedFile = true
         let url = URL(fileURLWithPath: filename)
-        DocumentTabs.shared.openDocument(withContentsOf: url, display: true) { _, _, error in
+        DocumentTabs.current.openDocument(withContentsOf: url, display: true) { _, _, error in
                     if let error { NSApp.presentError(error) }
                 }
         return true
@@ -113,22 +137,34 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         hasOpenedFile = true
         for filename in filenames {
             let url = URL(fileURLWithPath: filename)
-            DocumentTabs.shared.openDocument(withContentsOf: url, display: true) { _, _, error in
+            DocumentTabs.current.openDocument(withContentsOf: url, display: true) { _, _, error in
                     if let error { NSApp.presentError(error) }
                 }
         }
     }
 
+    func applicationOpenUntitledFile(_ sender: NSApplication) -> Bool {
+        if !hasOpenedFile && NSDocumentController.shared.documents.isEmpty { DocumentTabs.newWindow() }
+        return true
+    }
+
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+        !reviewingQuit
+    }
+
     func applicationShouldOpenUntitledFile(_ sender: NSApplication) -> Bool {
-        return !hasOpenedFile
+        DispatchQueue.main.async {
+            if !self.hasOpenedFile && NSDocumentController.shared.documents.isEmpty { DocumentTabs.newWindow() }
+        }
+        return false
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
         if !flag {
             if WindowOpeningMode.from(stored: UserDefaults.standard.string(forKey: "windowOpeningMode") ?? "windows") == .tabbed {
-                DocumentTabs.shared.newTab()
+                DocumentTabs.current.newTab()
             } else {
-                NSDocumentController.shared.newDocument(nil)
+                DocumentTabs.newWindow()
             }
             return false
         }
@@ -137,32 +173,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 }
 
 extension Notification.Name {
-    static let markdownDocumentDidSave = Notification.Name("markdownDocumentDidSave")
+    static let documentTabGroupsDidChange = Notification.Name("documentTabGroupsDidChange")
     static let copyAllDocumentText = Notification.Name("copyAllDocumentText")
     static let toggleEditMode = Notification.Name("toggleEditMode")
 }
 
-struct MarkdownDocument: FileDocument {
-    static let markdownType = UTType(importedAs: "net.daringfireball.markdown", conformingTo: .plainText)
-    static var readableContentTypes: [UTType] { [markdownType, .plainText] }
-    static var writableContentTypes: [UTType] { [markdownType, .plainText] }
-
+struct MarkdownDocument {
     var text = ""
-
-    init() {}
-
-    init(configuration: ReadConfiguration) throws {
-        guard let data = configuration.file.regularFileContents,
-              let decoded = String(data: data, encoding: .utf8) else {
-            throw CocoaError(.fileReadInapplicableStringEncoding)
-        }
-        text = decoded
-    }
-
-    func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
-        DispatchQueue.main.async {
-            NotificationCenter.default.post(name: .markdownDocumentDidSave, object: nil)
-        }
-        return FileWrapper(regularFileWithContents: Data(text.utf8))
-    }
 }

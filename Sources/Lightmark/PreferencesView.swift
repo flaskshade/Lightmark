@@ -126,7 +126,8 @@ struct PreferencesView: View {
     }
 
     private var activeReadingFont: ReadingFont {
-        ReadingFont.from(stored: readingFont)
+        let font = ReadingFont.from(stored: readingFont)
+        return font == .instrumentSerif ? .system : font
     }
 
     var body: some View {
@@ -174,14 +175,9 @@ struct PreferencesView: View {
                 VStack(spacing: 0) {
                     // Theme Row (System / Light / Dark)
                     HStack(alignment: .center, spacing: 12) {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Theme")
-                                .font(.system(size: 13, weight: .regular))
-                                .foregroundStyle(Color.primary)
-                            Text("Choose overall appearance style")
-                                .font(.system(size: 11.5))
-                                .foregroundStyle(Color.secondary.opacity(0.85))
-                        }
+                        Text("Theme")
+                            .font(.system(size: 13, weight: .regular))
+                            .foregroundStyle(Color.primary)
 
                         Spacer()
 
@@ -256,7 +252,7 @@ struct PreferencesView: View {
                                     windowOpeningMode = WindowOpeningMode.separateWindows.rawValue
                                 }
                                 DispatchQueue.main.async {
-                                    DocumentTabs.shared.changeMode(to: .separateWindows)
+                                    DocumentTabs.current.changeMode(to: .separateWindows)
                                 }
                             }
 
@@ -323,7 +319,7 @@ struct PreferencesView: View {
                                     windowOpeningMode = WindowOpeningMode.tabbed.rawValue
                                 }
                                 DispatchQueue.main.async {
-                                    DocumentTabs.shared.changeMode(to: .tabbed)
+                                    DocumentTabs.current.changeMode(to: .tabbed)
                                 }
                             }
                         }
@@ -469,8 +465,9 @@ struct PreferencesView: View {
 
                 VStack(spacing: 0) {
                     // Headings Row
-                    SettingsRow(title: "Headings", subtitle: "Font used for headers (H1 to H6)") {
+                    SettingsRow(title: "Headings") {
                         SettingsFontSegmentedControl(
+                            fonts: ReadingFont.headingOptions,
                             selected: activeHeadingFont,
                             namespace: segmentNamespace,
                             group: "heading_seg"
@@ -484,8 +481,9 @@ struct PreferencesView: View {
                     Divider().opacity(0.20).padding(.horizontal, 16)
 
                     // Body Text Row
-                    SettingsRow(title: "Body Text", subtitle: "Font used for regular reading and editing") {
+                    SettingsRow(title: "Body Text") {
                         SettingsFontSegmentedControl(
+                            fonts: ReadingFont.bodyOptions,
                             selected: activeReadingFont,
                             namespace: segmentNamespace,
                             group: "body_seg"
@@ -495,61 +493,48 @@ struct PreferencesView: View {
                             }
                         }
                     }
+
+                    Divider().opacity(0.20).padding(.horizontal, 16)
+
+                    // Unified Font Size Slider Row
+                    SettingsSliderRow(
+                        title: "Font Size",
+                        value: $fontSize,
+                        range: 12...24,
+                        defaultValue: 16.0
+                    )
                 }
                 .frame(maxWidth: .infinity)
                 .background(settingsCardBackground)
             }
 
-            // Canvas & Metrics Group
+            // Column Width Group
             VStack(alignment: .leading, spacing: 8) {
                 HStack(spacing: 5.5) {
                     Image(systemName: "ruler.fill")
                         .font(.system(size: 11.5, weight: .medium))
                         .foregroundStyle(Color.secondary)
-                    Text("Canvas & Metrics")
+                    Text("Column Width")
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundStyle(Color.primary)
                 }
                 .padding(.leading, 3)
 
                 VStack(spacing: 0) {
-                    // Unified Font Size Slider Row
-                    SettingsSliderRow(
-                        title: "Base Font Size",
-                        subtitle: "Scales body and heading proportions",
-                        value: $fontSize,
-                        range: 12...24,
-                        defaultValue: 16.0
-                    )
-
-                    Divider().opacity(0.20).padding(.horizontal, 16)
-
-                    // Column Measure Visual Cards Row
-                    VStack(alignment: .leading, spacing: 12) {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Column Width")
-                                .font(.system(size: 13, weight: .regular))
-                                .foregroundStyle(Color.primary)
-                            Text("Maximum comfortable line measure for reading")
-                                .font(.system(size: 11.5))
-                                .foregroundStyle(Color.secondary.opacity(0.85))
-                        }
-
-                        HStack(spacing: 8) {
-                            ForEach(PageWidthPreset.allCases) { preset in
-                                ColumnWidthCard(
-                                    preset: preset,
-                                    isSelected: preset == .full ? readingWidth <= 0 : abs(readingWidth - preset.rawValue) < 20,
-                                    namespace: segmentNamespace
-                                ) {
-                                    withAnimation(.spring(response: 0.22, dampingFraction: 0.8)) {
-                                        readingWidth = preset.rawValue
-                                    }
+                    HStack(spacing: 8) {
+                        ForEach(PageWidthPreset.allCases) { preset in
+                            ColumnWidthCard(
+                                preset: preset,
+                                isSelected: preset == .full ? readingWidth <= 0 : abs(readingWidth - preset.rawValue) < 20,
+                                namespace: segmentNamespace
+                            ) {
+                                withAnimation(.spring(response: 0.22, dampingFraction: 0.8)) {
+                                    readingWidth = preset.rawValue
                                 }
                             }
                         }
                     }
-                    .padding(.horizontal, 16)
+                    .padding(.horizontal, 14)
                     .padding(.vertical, 14)
                 }
                 .frame(maxWidth: .infinity)
@@ -592,14 +577,6 @@ struct PreferencesView: View {
                     Divider().opacity(0.20).padding(.horizontal, 16)
 
                     ShortcutRow(
-                        title: "New Window",
-                        subtitle: "Open a fresh document window",
-                        shortcut: "⌘N"
-                    )
-
-                    Divider().opacity(0.20).padding(.horizontal, 16)
-
-                    ShortcutRow(
                         title: "Open Document",
                         subtitle: "Choose an existing markdown file from disk",
                         shortcut: "⌘O"
@@ -620,6 +597,14 @@ struct PreferencesView: View {
                         subtitle: "Close active tab or window",
                         shortcut: "⌘W"
                     )
+
+                    Divider().opacity(0.20).padding(.horizontal, 16)
+
+                    ShortcutRow(
+                        title: "Find in Document",
+                        subtitle: "Search within the current reading view",
+                        shortcut: "⌘F"
+                    )
                 }
                 .frame(maxWidth: .infinity)
                 .background(settingsCardBackground)
@@ -638,6 +623,14 @@ struct PreferencesView: View {
                 .padding(.leading, 3)
 
                 VStack(spacing: 0) {
+                    ShortcutRow(
+                        title: "New Window",
+                        subtitle: "Open a fresh document window",
+                        shortcut: "⌘N"
+                    )
+
+                    Divider().opacity(0.20).padding(.horizontal, 16)
+
                     ShortcutRow(
                         title: "New Tab",
                         subtitle: "Open a fresh document tab (in Tabbed mode)",
@@ -677,10 +670,11 @@ struct PreferencesView: View {
     // MARK: - About
     private var aboutSection: some View {
         VStack(spacing: 12) {
-            Image(nsImage: NSApplication.shared.applicationIconImage)
+            Image("LightmarkIcon", bundle: .main)
                 .resizable()
                 .scaledToFit()
                 .frame(width: 80, height: 80)
+                .accessibilityLabel("Lightmark app icon")
 
             Text("Lightmark")
                 .font(.title2.weight(.semibold))
@@ -689,7 +683,7 @@ struct PreferencesView: View {
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
 
-            Text("A lightweight Markdown reader and editor.")
+            Text("A focused & lightweight companion for Markdown on macOS.")
                 .font(.body)
                 .foregroundStyle(.secondary)
                 .padding(.top, 4)
@@ -821,7 +815,7 @@ struct PreferencesView: View {
         }
         AppTheme.apply(stored: AppTheme.system.rawValue)
         DispatchQueue.main.async {
-            DocumentTabs.shared.changeMode(to: .separateWindows)
+            DocumentTabs.current.changeMode(to: .separateWindows)
         }
     }
 }
@@ -1295,6 +1289,7 @@ private struct SettingsSliderRow: View {
 }
 
 private struct SettingsFontSegmentedControl: View {
+    var fonts: [ReadingFont] = ReadingFont.allCases
     let selected: ReadingFont
     let namespace: Namespace.ID
     let group: String
@@ -1303,7 +1298,7 @@ private struct SettingsFontSegmentedControl: View {
 
     var body: some View {
         HStack(spacing: 2) {
-            ForEach(ReadingFont.allCases) { font in
+            ForEach(fonts) { font in
                 let isCurrent = (font == selected)
                 let isHovered = (font == hoveredFont && !isCurrent)
                 Button(action: { onSelect(font) }) {
