@@ -5,6 +5,7 @@ import WebKit
 /// Manages in-page find operations for both WebKit reading view and NSTextView editor.
 @MainActor final class FindController: ObservableObject {
     @Published var isVisible = false
+    @Published private(set) var focusRequest = 0
     @Published var query = ""
     @Published var matchCount = 0
     @Published var currentMatch = 0
@@ -53,6 +54,7 @@ import WebKit
             }
         }
         isVisible = true
+        focusRequest += 1
         if !query.isEmpty {
             search(query)
         }
@@ -490,12 +492,7 @@ private struct DocumentContentView: View {
         )
         .background(
             Button("") {
-                if findController.isVisible {
-                    findController.close()
-                } else {
-                    findController.show()
-                    isFindFocused = true
-                }
+                findController.show()
             }
             .keyboardShortcut("f", modifiers: [.command])
             .opacity(0)
@@ -542,11 +539,6 @@ private struct DocumentContentView: View {
         }
         .onChange(of: isEditing) { _, newValue in
             findController.isEditing = newValue
-        }
-        .onChange(of: findController.isVisible) { _, isVisible in
-            if isVisible {
-                isFindFocused = true
-            }
         }
         .onReceive(NotificationCenter.default.publisher(for: .copyAllDocumentText)) { _ in
             guard documentWindow === NSApp.keyWindow else { return }
@@ -1223,6 +1215,14 @@ private struct FindBar: View {
         )
         .shadow(color: Color.black.opacity(0.10), radius: 12, x: 0, y: 4)
         .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 1)
+        .task(id: controller.focusRequest) {
+            // Request focus after the conditional field has joined the view tree.
+            isFocused = false
+            await Task.yield()
+            guard !Task.isCancelled, controller.isVisible else { return }
+            isFocused = true
+        }
+        .onDisappear { isFocused = false }
     }
 
     @ViewBuilder
@@ -1475,11 +1475,7 @@ fileprivate final class EditorNSTextView: NSTextView {
         if event.modifierFlags.intersection([.command, .shift, .control, .option]) == .command,
            event.charactersIgnoringModifiers == "f" {
             if let findController {
-                if findController.isVisible {
-                    findController.close()
-                } else {
-                    findController.show()
-                }
+                findController.show()
                 return true
             }
         }
