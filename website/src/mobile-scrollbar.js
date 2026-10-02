@@ -12,6 +12,12 @@ export function installMobileScrollbar(window) {
   let metrics = { travel:0,max:0 };
   function update() {
     const scroller = owner();
+    // Follow the actual content viewport, including the mobile CSS zoom.
+    const frame = window.getBoundingClientRect();
+    const content = surface.getBoundingClientRect();
+    const scale = frame.height / Math.max(1, window.offsetHeight);
+    track.style.top = `${(content.top - frame.top) / scale + 3}px`;
+    track.style.bottom = `${(frame.bottom - content.bottom) / scale + 3}px`;
     const height = track.clientHeight;
     const max = Math.max(0,scroller.scrollHeight-scroller.clientHeight);
     const size = Math.min(height,Math.max(36,height * scroller.clientHeight / Math.max(1,scroller.scrollHeight)));

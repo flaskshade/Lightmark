@@ -460,3 +460,9 @@ body,.introduction,.identity{background-color:#FFFFFF}
 .footer-links{display:flex;justify-content:center;gap:18px;font-size:10px;color:#86868b}
 .footer-links a{padding:7px 0}.footer-links a:hover{text-decoration:underline;text-underline-offset:3px}
 @media(max-width:999px){.footer-links{font-size:11px}}
+
+/* Keep the mobile indicator against the window edge, with its hit area inward. */
+@media(hover:none),(pointer:coarse),(max-width:759px){
+  .mobile-scroll-track{right:1px;width:13px}
+  .mobile-scroll-thumb{margin-left:auto;margin-right:2px}
+}
