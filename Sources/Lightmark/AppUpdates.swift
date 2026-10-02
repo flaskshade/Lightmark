@@ -14,6 +14,7 @@ final class AppUpdates: NSObject, ObservableObject {
     @Published private(set) var canCheck = false
     @Published private(set) var showUpdateComplete = false
     @Published fileprivate(set) var isChecking = false
+    @Published fileprivate(set) var checkResult: String?
     @Published private(set) var feedback: String?
     private var feedbackTask: Task<Void, Never>?
     @Published fileprivate(set) var availableVersion: String?
@@ -47,13 +48,14 @@ final class AppUpdates: NSObject, ObservableObject {
         #endif
     }
 
-    func activateHeader() { driver.activateInline() }
+    func activateUpdate() { driver.activateInline() }
     func cancelDownload() { driver.cancelInlineDownload() }
 
     func check() {
         if driver.hasPendingOffer {
             showFeedback("Update available")
         } else if canCheck && !isChecking {
+            checkResult = nil
             isChecking = true
             updater.checkForUpdates()
         }
@@ -87,6 +89,7 @@ private final class LightmarkUpdateDriver: SPUStandardUserDriver {
 
     override func showUpdateFound(with appcastItem: SUAppcastItem, state: SPUUserUpdateState, reply: @escaping (SPUUserUpdateChoice) -> Void) {
         owner?.isChecking = false
+        owner?.checkResult = nil
         // Informational releases retain Sparkle’s standard presentation.
         guard !appcastItem.isInformationOnlyUpdate else {
             super.showUpdateFound(with: appcastItem, state: state, reply: reply)
@@ -186,14 +189,19 @@ private final class LightmarkUpdateDriver: SPUStandardUserDriver {
         owner?.isChecking = false
         let reason = (error as NSError).userInfo[SPUNoUpdateFoundReasonKey] as? NSNumber
         let latest = reason?.int32Value == SPUNoUpdateFoundReason.onLatestVersion.rawValue
-        owner?.showFeedback(latest ? "You’re up to date" : "No update available")
+        let message = latest ? "You’re up to date" : "No update available"
+        owner?.checkResult = message
+        owner?.showFeedback(message)
         acknowledgement()
     }
 
     override func showUpdaterError(_ error: Error, acknowledgement: @escaping () -> Void) {
         let wasVisible = owner?.isChecking == true || inlineFlow
         owner?.isChecking = false
-        if wasVisible { owner?.showFeedback("Couldn’t update. Try again later") }
+        if wasVisible {
+            owner?.checkResult = "Couldn’t update. Try again"
+            owner?.showFeedback("Couldn’t update. Try again later")
+        }
         acknowledgement()
     }
 
@@ -239,7 +247,7 @@ struct HeaderUpdateButton: View {
     }
     var body: some View {
         if updates.isChecking || updates.availableVersion != nil {
-            Button(action: updates.activateHeader) {
+            Button(action: updates.activateUpdate) {
                 HStack(spacing: 6) {
                     if updates.isChecking || updates.headerState == .downloading || updates.headerState == .preparing {
                         ProgressView(value: updates.downloadProgress)
@@ -271,5 +279,90 @@ struct HeaderUpdateButton: View {
             .help(label)
             .accessibilityLabel(label)
         }
+    }
+}
+
+
+struct SettingsUpdateSection: View {
+    @ObservedObject private var updates = AppUpdates.shared
+
+    private var status: String {
+        if updates.isChecking { return "Checking for updates…" }
+        if updates.availableVersion != nil {
+            return switch updates.headerState {
+            case .available: "Update available"
+            case .downloading: "Downloading update…"
+            case .preparing: "Preparing update…"
+            case .ready: "Update ready"
+            case .restarting: "Restarting…"
+            }
+        }
+        return updates.checkResult ?? "Check for Updates…"
+    }
+
+    var body: some View {
+        VStack(spacing: 10) {
+            Button(action: updates.check) {
+                HStack(spacing: 7) {
+                    if updates.isChecking {
+                        ProgressView().controlSize(.small).frame(width: 14, height: 14)
+                    }
+                    Text(status)
+                }
+                .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(UpdateSettingsButtonStyle())
+            .disabled(updates.isChecking || updates.availableVersion != nil || !updates.canCheck)
+
+            if let version = updates.availableVersion {
+                Text("Lightmark \(version)")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+
+                switch updates.headerState {
+                case .available, .ready:
+                    Button(action: updates.activateUpdate) {
+                        Label(updates.headerState == .ready ? "Restart to update" : "Download update",
+                              systemImage: updates.headerState == .ready ? "arrow.clockwise" : "arrow.down.circle")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(UpdateSettingsButtonStyle(prominent: true))
+                case .downloading, .preparing, .restarting:
+                    ProgressView(value: updates.headerState == .downloading ? updates.downloadProgress : nil)
+                        .progressViewStyle(.linear)
+                        .accessibilityLabel(status)
+                    if updates.headerState == .downloading {
+                        Button("Cancel download", action: updates.cancelDownload)
+                            .buttonStyle(UpdateSettingsButtonStyle())
+                    }
+                }
+            }
+        }
+        .font(.system(size: 12, weight: .medium))
+        .frame(width: 220)
+    }
+}
+
+private struct UpdateSettingsButtonStyle: ButtonStyle {
+    var prominent = false
+    @Environment(\.isEnabled) private var isEnabled
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var isHovered = false
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .foregroundStyle(prominent ? Color.white : Color.primary)
+            .background {
+                RoundedRectangle(cornerRadius: 7, style: .continuous)
+                    .fill(prominent
+                        ? Color.accentColor.opacity(configuration.isPressed ? 0.70 : (isHovered && isEnabled ? 0.85 : 1))
+                        : Color.primary.opacity(configuration.isPressed ? 0.12 : (isHovered && isEnabled ? 0.08 : 0.045)))
+            }
+            .opacity(isEnabled ? 1 : 0.65)
+            .contentShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+            .onHover { isHovered = $0 }
+            .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: isHovered)
     }
 }

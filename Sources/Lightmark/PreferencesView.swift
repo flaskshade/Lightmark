@@ -697,7 +697,7 @@ struct PreferencesView: View {
                     .padding(.top, 8)
             }
 
-            CheckForUpdatesButton()
+            SettingsUpdateSection()
                 .padding(.top, 8)
 
             HStack(spacing: 16) {
