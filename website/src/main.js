@@ -59,27 +59,43 @@ const modal = document.querySelector('.download-modal');
 const downloadLink = document.querySelector('#download-link');
 const copyButton = document.querySelector('#copy-download');
 const copyStatus = document.querySelector('#copy-status');
+let copyTimer;
+let modalScrollY = 0;
 const mobileDevice = () => /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 download.addEventListener('click', event => {
   if (!mobileDevice()) return;
   event.preventDefault();
   downloadLink.value = new URL(download.getAttribute('href'), location.href).href;
   copyStatus.textContent = '';
-  copyButton.textContent = 'Copy link';
+  clearTimeout(copyTimer);
+  copyButton.removeAttribute('data-copied');
+  modalScrollY = globalThis.scrollY;
+  document.body.style.position = 'fixed';
+  document.body.style.top = `-${modalScrollY}px`;
+  document.body.style.width = '100%';
   modal.showModal();
-  document.querySelector("#close-download").focus({ preventScroll: true });
+  document.querySelector('#download-modal-title').focus({ preventScroll: true });
 });
 document.querySelector('#close-download').addEventListener('click', () => modal.close());
 modal.addEventListener('click', event => {
   const rect = modal.getBoundingClientRect();
   if (event.target === modal && (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom)) modal.close();
 });
-modal.addEventListener('close', () => download.focus({ preventScroll: true }));
+modal.addEventListener('close', () => {
+  clearTimeout(copyTimer);
+  document.body.style.position = '';
+  document.body.style.top = '';
+  document.body.style.width = '';
+  globalThis.scrollTo(0, modalScrollY);
+  download.focus({ preventScroll: true });
+});
 copyButton.addEventListener('click', async () => {
   try {
     await copyText(downloadLink.value);
-    copyButton.textContent = 'Copied';
-    copyStatus.textContent = 'Link copied. Open it on your Mac.';
+    copyButton.dataset.copied = 'true';
+    copyStatus.textContent = 'Link copied.';
+    clearTimeout(copyTimer);
+    copyTimer = setTimeout(() => { copyButton.removeAttribute('data-copied'); copyStatus.textContent = ''; }, 2000);
   } catch {
     downloadLink.focus();
     downloadLink.select();

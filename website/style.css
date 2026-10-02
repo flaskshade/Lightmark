@@ -476,3 +476,18 @@ body,.introduction,.identity{background-color:#FFFFFF}
 .identity .free-note{font-size:16px;color:#737378;margin-bottom:20px}
 .identity .compatibility-note{margin-top:12px}
 @media(prefers-color-scheme:dark){.identity .free-note{color:#b4b4bb}}
+
+/* Mobile modal stays fixed without focusing a button or shifting the page. */
+html{background:var(--paper)}
+.download-modal{position:fixed;inset:0;margin:auto;height:fit-content;max-height:calc(100dvh - 48px);overflow:auto;overscroll-behavior:contain}
+.download-modal::backdrop{position:fixed;inset:0}
+#download-modal-title:focus{outline:none}
+.download-modal .copy-status{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.modal-actions #copy-download{position:relative;display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:0 16px;min-width:122px;border-radius:10px;isolation:isolate;background:linear-gradient(180deg,#29292b,#1d1d1f);color:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,.15),0 0 0 1px rgba(0,0,0,.85),0 3px 7px rgba(0,0,0,.14);transform:none}
+.modal-actions #copy-download:hover{background:linear-gradient(180deg,#3b3b3d,#29292b);transform:none}
+#copy-download svg{width:17px;height:17px;flex:none}
+#copy-download .copy-link-check{display:none}
+#copy-download[data-copied] .copy-link-icon{display:none}
+#copy-download[data-copied] .copy-link-check{display:block}
+@media(prefers-color-scheme:dark){.modal-actions #copy-download{background:linear-gradient(180deg,#fff,#f8f8fa 48%,#e7e7ec);color:#242426;box-shadow:inset 0 1px 0 #fff,inset 0 -1px 0 rgba(0,0,0,.1),0 0 0 1px rgba(255,255,255,.28),0 3px 9px rgba(0,0,0,.2)}.modal-actions #copy-download:hover{background:linear-gradient(180deg,#fff,#fff 45%,#f0f0f5)}}
+@media(hover:none),(pointer:coarse),(max-width:759px){.mobile-scroll-track{right:0}.mobile-scroll-thumb{margin-right:1px}}

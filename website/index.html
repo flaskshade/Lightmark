@@ -78,10 +78,10 @@
     </footer>
   </main>
   <dialog class="download-modal" aria-labelledby="download-modal-title" aria-describedby="download-modal-description">
-    <h2 id="download-modal-title"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 4h14v13H5zM3 20h18"/></svg>Lightmark is a macOS app.</h2>
+    <h2 id="download-modal-title" tabindex="-1" autofocus><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 4h14v13H5zM3 20h18"/></svg>Lightmark is a macOS app.</h2>
     <p id="download-modal-description">Copy the link below and open it on your Mac to download Lightmark.</p>
     <input id="download-link" aria-label="Download link" readonly spellcheck="false">
-    <div class="modal-actions"><button type="button" id="close-download" autofocus>Close</button><button type="button" id="copy-download">Copy link</button></div>
+    <div class="modal-actions"><button type="button" id="close-download">Close</button><button type="button" id="copy-download" class="download"><svg class="copy-link-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></svg><svg class="copy-link-check" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 4 4 10-10"/></svg><span>Copy link</span></button></div>
     <p id="copy-status" class="copy-status" role="status" aria-live="polite"></p>
   </dialog>
 </body>
