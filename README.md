@@ -10,6 +10,10 @@
 
 <br><br>
 
+---
+
+<br><br>
+
  macOS comes with **dedicated apps** for most common file types:
 
 | File                   | Default Utility  |
@@ -35,7 +39,6 @@ But there is **no equivalent default utility** for **Markdown files**.
 
 <br><br>
 
----
 
 <br><br>
 
