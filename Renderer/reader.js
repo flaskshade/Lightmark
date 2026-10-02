@@ -123,7 +123,7 @@ function render(payload) {
       FORBID_TAGS: ['script','style','iframe','object','embed','form','button','textarea','select','meta','link','base'],
       ALLOW_DATA_ATTR: false, ALLOW_UNKNOWN_PROTOCOLS: false,
       ADD_URI_SAFE_ATTR: [],
-      ALLOWED_URI_REGEXP: /^(?:(?:https?|mailto|tel|file):|[^a-z]|[a-z+.-]+(?:[^a-z+.-:]|$))/i
+      ALLOWED_URI_REGEXP: /^(?:(?:https?|mailto|tel|file):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i
     });
     for (const element of fragment.querySelectorAll('.lm-math[data-math]')) {
       const entry = math[Number(element.dataset.math)];
