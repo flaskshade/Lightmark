@@ -1,4 +1,3 @@
-import { trackDownload } from './download-analytics.js';
 import { installMobileScrollbar } from './mobile-scrollbar.js';
 import { copyText } from './clipboard.js';
 import { installWindowFrame } from './window-frame.js';
@@ -62,7 +61,7 @@ const copyButton = document.querySelector('#copy-download');
 const copyStatus = document.querySelector('#copy-status');
 const mobileDevice = () => /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 download.addEventListener('click', event => {
-  if (!mobileDevice()) { trackDownload(); return; }
+  if (!mobileDevice()) return;
   event.preventDefault();
   downloadLink.value = new URL(download.getAttribute('href'), location.href).href;
   copyStatus.textContent = '';
