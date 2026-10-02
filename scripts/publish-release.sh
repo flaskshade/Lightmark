@@ -22,17 +22,12 @@ if [[ -n "${RELEASE_NOTES_FILE:-}" ]]; then
 else
   print '[Changelog](https://trylightmark.com/changelog/)' > "$release_notes"
 fi
+scripts/publish-downloads.sh --check
 export RELEASE_TAG="$tag"
 scripts/package-release.sh
-cp dist/release/{Lightmark.dmg,Lightmark.zip,release.json,SHA256SUMS.txt} website/downloads/
-cp dist/release/appcast.xml dist/release/Lightmark-*.zip website/downloads/
-git add website/downloads/appcast.xml website/downloads/Lightmark-*.zip
-git add website/downloads/Lightmark.dmg website/downloads/Lightmark.zip website/downloads/release.json website/downloads/SHA256SUMS.txt
-if ! git diff --cached --quiet; then
-  git commit -m "Release $version"
-fi
 git tag -a "$tag" -m "Lightmark $version"
 # Publish branch and immutable tag together; concurrent main updates reject both.
 git push --atomic origin main "$tag"
 gh release create "$tag" dist/release/Lightmark.dmg dist/release/Lightmark.zip dist/release/SHA256SUMS.txt dist/release/release.json --repo "$release_repo" --verify-tag --title "Lightmark $version" --notes-file "$release_notes"
+scripts/publish-downloads.sh
 print "Published $tag. Cloudflare will deploy the website download automatically."
