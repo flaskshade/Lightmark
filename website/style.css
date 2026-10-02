@@ -471,3 +471,8 @@ body,.introduction,.identity{background-color:#FFFFFF}
 .page-footer .project-signature>span:first-child{font-size:8.5px}
 .page-footer .signature-name{font-size:16px}
 @media(prefers-color-scheme:dark){.identity .free-note{color:#a1a1a8}}
+
+/* Give the free promise more presence and separate platform details. */
+.identity .free-note{font-size:16px;color:#737378;margin-bottom:20px}
+.identity .compatibility-note{margin-top:12px}
+@media(prefers-color-scheme:dark){.identity .free-note{color:#b4b4bb}}
