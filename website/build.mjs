@@ -23,7 +23,7 @@ siteURL.search = ''; siteURL.hash = '';
 let html = await readFile('index.html', 'utf8');
 html = html.replace(/(<link rel="canonical" href=")[^"]+("[^>]*>)/, `$1${siteURL.href}$2`)
  .replace(/(<meta property="og:url" content=")[^"]+("[^>]*>)/, `$1${siteURL.href}$2`)
- .replace(/(<meta (?:property="og:image"|name="twitter:image") content=")[^"]+("[^>]*>)/g, `$1${new URL('assets/social-preview.png',siteURL).href}$2`);
+ .replace(/(<meta (?:property="og:image"|name="twitter:image") content=")[^"]+("[^>]*>)/g, `$1${new URL('assets/social-preview.png?v=2',siteURL).href}$2`);
 const releaseURL = process.env.RELEASE_DOWNLOAD_URL;
 // Keep the existing release available until the first verified DMG is published.
 if (!releaseURL && !(await readdir('downloads')).includes('Lightmark.dmg')) {
