@@ -7,6 +7,8 @@ import OSLog
 @MainActor final class PreviewViewController: NSViewController, @preconcurrency QLPreviewingController, WKNavigationDelegate {
     private lazy var resources = ReaderResources(bundle: Bundle(for: PreviewViewController.self), offline: true)
     private var webView: WKWebView!
+    // A shared ephemeral store lets successive previews reuse WebKit processes.
+    private static let previewDataStore = WKWebsiteDataStore.nonPersistent()
     private var readTask: Task<Void, Never>?
     private var deadline: Task<Void, Never>?
     private var completion: ((Error?) -> Void)?
@@ -24,7 +26,11 @@ import OSLog
         view = container
         preferredContentSize = container.frame.size
         let configuration = WKWebViewConfiguration()
-        configuration.websiteDataStore = .nonPersistent()
+        configuration.websiteDataStore = Self.previewDataStore
+        configuration.userContentController.add(PreviewReadyBridge(owner: self), name: "previewReady")
+        configuration.userContentController.addUserScript(WKUserScript(
+            source: "if (typeof window.lightmarkRender === 'function') window.webkit.messageHandlers.previewReady.postMessage(null)",
+            injectionTime: .atDocumentEnd, forMainFrameOnly: true))
         configuration.setURLSchemeHandler(resources, forURLScheme: "lightmark-reader")
         configuration.setURLSchemeHandler(resources, forURLScheme: "lightmark-image")
         webView = WKWebView(frame: container.bounds, configuration: configuration)
@@ -79,7 +85,7 @@ import OSLog
             switch result {
             case .success(let (source, plainText)):
                 self.payload = ["source": source, "version": request, "identity": url.absoluteString,
-                    "fontSize": 16, "width": 740, "bodyFont": "system", "headingFont": "system",
+                    "fontSize": 14, "width": 740, "bodyFont": "system", "headingFont": "system",
                     "editable": false, "preview": true, "plainText": plainText, "dark": self.isDark]
                 self.render()
             case .failure(let error): self.finish(error)
@@ -155,9 +161,14 @@ import OSLog
         finish(CocoaError(.userCancelled))
     }
 
-    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+    fileprivate func readerBecameReady() {
+        guard !ready else { return }
         ready = true
         render()
+    }
+
+    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        readerBecameReady()
     }
 
     func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) { finish(error) }
@@ -176,5 +187,14 @@ import OSLog
     override func viewDidChangeEffectiveAppearance() {
         super.viewDidChangeEffectiveAppearance()
         appearanceChanged?()
+    }
+}
+
+@MainActor private final class PreviewReadyBridge: NSObject, WKScriptMessageHandler {
+    weak var owner: PreviewViewController?
+    init(owner: PreviewViewController) { self.owner = owner }
+    func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+        guard message.frameInfo.isMainFrame else { return }
+        owner?.readerBecameReady()
     }
 }

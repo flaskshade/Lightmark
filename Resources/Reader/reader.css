@@ -89,3 +89,5 @@ pre:hover > .lm-copy-code-btn:hover{opacity:1}
 dt{font-weight:600}dd{margin:.25em 0 1em 1.65em}mark{color:inherit;background:rgba(235,189,50,.25);border-radius:2px}
 
 #reader[data-preview=true] .lm-copy-btn{display:none}
+#reader[data-preview=true]{width:calc(100% - 64px);padding:26px 0 40px}
+@media(max-width:600px){#reader[data-preview=true]{width:calc(100% - 40px);padding:20px 0 32px}}

@@ -20,8 +20,8 @@ rm -f "$extension/Contents/Resources/Reader/stress.md"
 minimum_os="$(/usr/libexec/PlistBuddy -c 'Print :LSMinimumSystemVersion' "$app_path/Contents/Info.plist")"
 sdk="$(xcrun --sdk macosx --show-sdk-path)"
 arch="$(uname -m)"
-flags=(-O)
-if [[ "$build_mode" == debug ]]; then flags=(-Onone -g -D DEBUG); fi
+flags=(-O -whole-module-optimization)
+if [[ "$build_mode" == debug ]]; then flags+=(-g -D DEBUG); fi
 xcrun swiftc -swift-version 6 -parse-as-library -application-extension \
   -module-name LightmarkQuickLook -sdk "$sdk" -target "$arch-apple-macosx$minimum_os" \
   -module-cache-path "$project_root/.build/swift-cache" "${flags[@]}" \
