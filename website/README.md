@@ -1,6 +1,6 @@
 # Lightmark website
 
-A static, single-screen website with two equal halves: an interactive Lightmark window on the left; the dark icon, a short introduction and a free Mac download on the right. No account or external fonts. Cloudflare provides basic website analytics; the document demo has no runtime CDN dependencies.
+A static, single-screen website with two equal halves: an interactive Lightmark window on the left; the dark icon, a short introduction, a free Mac download and a discreet GitHub star link on the right. No account or external fonts. Cloudflare provides basic website analytics; the document demo has no runtime CDN dependencies.
 
 ## Local preview
 
