@@ -1,2 +1,15 @@
-<?xml version="1.0" encoding="utf-8"?>
-<rss version="2.0"><channel><title>Lightmark Updates</title><link>https://trylightmark.com/</link><description>Signed Lightmark updates</description></channel></rss>
+<?xml version='1.0' encoding='utf-8'?>
+<rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" version="2.0">
+  <channel>
+    <title>Lightmark Updates</title>
+    <link>https://trylightmark.com/</link>
+    <description>Signed Lightmark updates</description>
+    <item>
+      <title>Lightmark 0.1.4</title>
+      <pubDate>Fri, 02 Oct 2026 06:34:54 GMT</pubDate>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <sparkle:releaseNotesLink>https://trylightmark.com/changelog/</sparkle:releaseNotesLink>
+      <enclosure url="https://trylightmark.com/downloads/Lightmark-0.1.4-5.zip" length="6285109" type="application/octet-stream" sparkle:version="5" sparkle:shortVersionString="0.1.4" sparkle:edSignature="NNZgrWrL8n3ZAQ0Na6yGrBNIVpaFdaCNb0QDTjDwVJnrNb/ZVvIQ7LQcDZ9EqHUOcMN+gR0aL5HlwKNNGXSZDg==" />
+    </item>
+  </channel>
+</rss>
