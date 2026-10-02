@@ -103,6 +103,7 @@ struct PreferencesView: View {
     @AppStorage("fontSize") private var fontSize = 16.0
     @AppStorage("readingWidth") private var readingWidth = 740.0
 
+    @State private var markdownIsDefault = FirstLaunch.shared.isDefault
     @State private var selectedTab: PreferencesTab = .appearance
     @Namespace private var segmentNamespace
     @Environment(\.colorScheme) private var colorScheme
@@ -154,6 +155,9 @@ struct PreferencesView: View {
             }
         }
         .frame(width: 580, height: 620)
+        .onAppear { markdownIsDefault = FirstLaunch.shared.isDefault }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in markdownIsDefault = FirstLaunch.shared.isDefault }
+        .onReceive(NotificationCenter.default.publisher(for: .defaultMarkdownAppDidChange)) { _ in markdownIsDefault = FirstLaunch.shared.isDefault }
     }
 
     // MARK: - 1. Appearance Section
@@ -688,7 +692,7 @@ struct PreferencesView: View {
                 .foregroundStyle(.secondary)
                 .padding(.top, 4)
 
-            if FirstLaunch.shared.isInstalled {
+            if FirstLaunch.shared.isInstalled && !markdownIsDefault {
                 Button("Default Markdown App…") { FirstLaunch.shared.present() }
                     .padding(.top, 8)
             }

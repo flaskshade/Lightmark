@@ -58,6 +58,7 @@ final class FirstLaunch {
             throw NSError(domain: "Lightmark", code: 1, userInfo: [NSLocalizedDescriptionKey: "The default app could not be changed."])
         }
         try await NSWorkspace.shared.setDefaultApplication(at: Bundle.main.bundleURL, toOpen: type)
+        NotificationCenter.default.post(name: .defaultMarkdownAppDidChange, object: nil)
     }
 }
 
@@ -95,9 +96,9 @@ private struct WelcomeView: View {
             } else {
                 Text(FirstLaunch.shared.isDefault ? "You're ready." : "Use Lightmark for Markdown files?")
                     .font(.system(size: 19, weight: .semibold))
-                Text(error ?? (FirstLaunch.shared.isDefault
+                Text(LocalizedStringKey(error ?? (FirstLaunch.shared.isDefault
                     ? "Lightmark is your default Markdown app."
-                    : "Make Lightmark the default app for opening `.md` files."))
+                    : "Make Lightmark the default app for opening `.md` files.")))
                     .font(.system(size: 13)).foregroundStyle(.secondary)
                     .multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
                 HStack(spacing: 12) {
@@ -140,4 +141,8 @@ private struct WelcomeView: View {
             }
         }
     }
+}
+
+extension Notification.Name {
+    static let defaultMarkdownAppDidChange = Notification.Name("defaultMarkdownAppDidChange")
 }
