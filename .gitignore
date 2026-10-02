@@ -18,3 +18,5 @@ Renderer/node_modules/
 # Local project context and working release notes
 /Blueprint.md
 /CHANGELOG.md
+
+/website/
