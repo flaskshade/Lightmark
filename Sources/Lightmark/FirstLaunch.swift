@@ -93,11 +93,11 @@ private struct WelcomeView: View {
                         ? [.white, .white.opacity(0.55)]
                         : [Color(white: 0.13), Color(white: 0.27)], startPoint: .top, endPoint: .bottom))
             } else {
-                Text(FirstLaunch.shared.isDefault ? "You're ready." : "Open Markdown with Lightmark?")
+                Text(FirstLaunch.shared.isDefault ? "You're ready." : "Use Lightmark for Markdown files?")
                     .font(.system(size: 19, weight: .semibold))
                 Text(error ?? (FirstLaunch.shared.isDefault
                     ? "Lightmark is your default Markdown app."
-                    : "Open .md files directly in Lightmark when you double-click them in Finder."))
+                    : "Make Lightmark the default app for opening `.md` files."))
                     .font(.system(size: 13)).foregroundStyle(.secondary)
                     .multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
                 HStack(spacing: 12) {
@@ -124,18 +124,18 @@ private struct WelcomeView: View {
         .opacity(visible ? 1 : 0)
         .task {
             intro = showIntro
-            withAnimation(reduceMotion ? nil : .easeOut(duration: 0.25)) { visible = true }
+            withAnimation(reduceMotion ? nil : .easeOut(duration: 0.55)) { visible = true }
             if showIntro {
-                withAnimation(reduceMotion ? nil : .easeInOut(duration: 1.2)) { auraExpanded = true }
-                do { try await Task.sleep(for: .seconds(reduceMotion ? 0.3 : 1.4)) }
+                withAnimation(reduceMotion ? nil : .easeInOut(duration: 2.8)) { auraExpanded = true }
+                do { try await Task.sleep(for: .seconds(reduceMotion ? 0.5 : 3.0)) }
                 catch { return }
                 if !FirstLaunch.shared.isInstalled || FirstLaunch.shared.isDefault {
-                    withAnimation(reduceMotion ? nil : .easeOut(duration: 0.18)) { visible = false }
-                    try? await Task.sleep(for: .seconds(reduceMotion ? 0 : 0.18))
+                    withAnimation(reduceMotion ? nil : .easeOut(duration: 0.4)) { visible = false }
+                    try? await Task.sleep(for: .seconds(reduceMotion ? 0 : 0.4))
                     guard !Task.isCancelled else { return }
                     dismiss()
                 } else {
-                    withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.18)) { intro = false }
+                    withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.4)) { intro = false }
                 }
             }
         }

@@ -24,6 +24,8 @@ final class RecentDocumentsStore: ObservableObject {
 
     @Published private(set) var recentItems: [RecentFileItem] = []
 
+    private var explicitlyOpenedPaths = Set<String>()
+    private let previewCacheKey = "LightmarkRecentPreviewCache"
     private let userDefaultsKey = "LightmarkRecentFilePaths"
 
     init() {
@@ -34,6 +36,7 @@ final class RecentDocumentsStore: ObservableObject {
         guard url.isFileURL else { return }
         var current = getStoredPaths()
         let path = url.standardizedFileURL.resolvingSymlinksInPath().path
+        explicitlyOpenedPaths.insert(path)
         if current.first == path, recentItems.first?.id == path { return }
         current.removeAll(where: { $0 == path })
         current.insert(path, at: 0)
@@ -50,6 +53,7 @@ final class RecentDocumentsStore: ObservableObject {
     }
 
     func clear() {
+        UserDefaults.standard.removeObject(forKey: previewCacheKey)
         UserDefaults.standard.removeObject(forKey: userDefaultsKey)
         NSDocumentController.shared.clearRecentDocuments(nil)
         refresh()
@@ -78,28 +82,13 @@ final class RecentDocumentsStore: ObservableObject {
             }
         }
 
-        // Also check if project / bundle Welcome.md exists as sample if recents list is empty
-        if urls.isEmpty {
-            let currentDir = FileManager.default.currentDirectoryPath
-            let candidatePaths = [
-                currentDir + "/Examples/Welcome.md",
-                currentDir + "/Welcome.md"
-            ]
-            for cp in candidatePaths where FileManager.default.fileExists(atPath: cp) {
-                urls.append(URL(fileURLWithPath: cp))
-            }
-            if let welcome = Bundle.main.url(forResource: "Welcome", withExtension: "md") {
-                if !urls.contains(where: { $0.standardizedFileURL.path == welcome.standardizedFileURL.path }) {
-                    urls.append(welcome)
-                }
-            }
-        }
-
         var items: [RecentFileItem] = []
         let fileManager = FileManager.default
+        var cached = UserDefaults.standard.dictionary(forKey: previewCacheKey) as? [String: [String: Any]] ?? [:]
 
         for url in urls.prefix(20) {
-            guard fileManager.fileExists(atPath: url.path) else { continue }
+            let mayRead = explicitlyOpenedPaths.contains(url.standardizedFileURL.path)
+            if mayRead && !fileManager.fileExists(atPath: url.path) { continue }
 
             let fileName = url.lastPathComponent
             let folderURL = url.deletingLastPathComponent()
@@ -119,14 +108,14 @@ final class RecentDocumentsStore: ObservableObject {
 
             let pathDisplay = components.isEmpty ? "~" : components.joined(separator: " › ")
 
-            var snippet = ""
-            var modifiedDate: Date?
+            var snippet = cached[url.path]?["snippet"] as? String ?? ""
+            var modifiedDate = (cached[url.path]?["modified"] as? Double).map { Date(timeIntervalSince1970: $0) }
 
-            if let attrs = try? fileManager.attributesOfItem(atPath: url.path) {
+            if mayRead, let attrs = try? fileManager.attributesOfItem(atPath: url.path) {
                 modifiedDate = attrs[.modificationDate] as? Date
             }
 
-            if let handle = try? FileHandle(forReadingFrom: url) {
+            if mayRead, let handle = try? FileHandle(forReadingFrom: url) {
                 let data = handle.readData(ofLength: 1500)
                 try? handle.close()
                 if let rawText = String(data: data, encoding: .utf8) {
@@ -141,6 +130,12 @@ final class RecentDocumentsStore: ObservableObject {
                 }
             }
 
+            if mayRead {
+                var entry: [String: Any] = ["snippet": snippet]
+                if let modifiedDate { entry["modified"] = modifiedDate.timeIntervalSince1970 }
+                cached[url.path] = entry
+            }
+
             items.append(
                 RecentFileItem(
                     id: url.standardizedFileURL.path,
@@ -153,6 +148,8 @@ final class RecentDocumentsStore: ObservableObject {
             )
         }
 
+        let retained = Set(items.map { $0.url.path })
+        UserDefaults.standard.set(cached.filter { retained.contains($0.key) }, forKey: previewCacheKey)
         self.recentItems = items
     }
 
