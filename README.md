@@ -1,4 +1,8 @@
-# Lightmark
+<h1 align="center">Lightmark</h1>
+
+<p align="center">
+  <img src="docs/images/lightmark-preview.jpg" width="720" alt="A Markdown document rendered in Lightmark">
+</p>
 
  macOS comes with **dedicated apps** for most common file types:
 
@@ -23,11 +27,10 @@ But there is **no equivalent default utility** for **Markdown files**.
 > - The essentials you'd expect from a default utility
 > - **Native, simple, and lightweight**
 
+---
+
 <p align="center">
   <img src="docs/images/lightmark-start.jpg" width="720" alt="Lightmark start window with recent documents">
-</p>
-<p align="center">
-  <img src="docs/images/lightmark-preview.jpg" width="720" alt="A Markdown document rendered in Lightmark">
 </p>
 <p align="center">
   <img src="docs/images/lightmark-editor.jpg" width="720" alt="Editing Markdown source in Lightmark">
