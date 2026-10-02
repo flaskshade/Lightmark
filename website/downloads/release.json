@@ -1,9 +1,9 @@
 {
-  "version": "0.1.1",
-  "build": "2",
+  "version": "0.1.2",
+  "build": "3",
   "architecture": "arm64",
   "minimumMacOS": "14.0",
   "downloadURL": "https://trylightmark.com/downloads/Lightmark.dmg",
-  "size": 5129395,
-  "sha256": "23bb93c85b4557ea0fd21aada8499db989ceeb922609544fd442a345033cb8f0"
+  "size": 5135506,
+  "sha256": "cc131ef0803404092c451bcaab686b2ba985cc81c00db9c22723a68597f91805"
 }
