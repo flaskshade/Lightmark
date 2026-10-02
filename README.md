@@ -1,7 +1,12 @@
-<h3 align="center">Lightmark</h3>
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/lightmark-title-dark.svg">
+    <img src="docs/images/lightmark-title-light.svg" width="220" height="48" alt="Lightmark">
+  </picture>
+</p>
 
 <p align="center">
-  <img src="website/assets/lightmark.png" width="100" height="100" alt="Lightmark app icon">
+  <img src="docs/images/lightmark-icon.png" width="100" height="100" alt="Lightmark app icon">
 </p>
 
 <p align="center">
