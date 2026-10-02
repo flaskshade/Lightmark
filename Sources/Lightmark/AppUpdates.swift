@@ -13,6 +13,9 @@ final class AppUpdates: NSObject, ObservableObject {
     @Published fileprivate(set) var downloadProgress: Double?
     @Published private(set) var canCheck = false
     @Published private(set) var showUpdateComplete = false
+    @Published fileprivate(set) var isChecking = false
+    @Published private(set) var feedback: String?
+    private var feedbackTask: Task<Void, Never>?
     @Published fileprivate(set) var availableVersion: String?
     private var observation: NSKeyValueObservation?
 
@@ -48,20 +51,32 @@ final class AppUpdates: NSObject, ObservableObject {
     func cancelDownload() { driver.cancelInlineDownload() }
 
     func check() {
-        if driver.hasPendingOffer { driver.presentOffer() }
-        else { updater.checkForUpdates() }
+        if driver.hasPendingOffer {
+            showFeedback("Update available")
+        } else if canCheck && !isChecking {
+            isChecking = true
+            updater.checkForUpdates()
+        }
+    }
+
+    fileprivate func showFeedback(_ message: String) {
+        feedbackTask?.cancel()
+        feedback = message
+        feedbackTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .seconds(2.5))
+            guard !Task.isCancelled else { return }
+            self?.feedback = nil
+        }
     }
 }
 
-/// Header-initiated updates stay inline; explicit menu checks use native dialogs.
+/// Update checks and header-initiated downloads stay inline.
 /// Sparkle owns the trust and installation machinery for both paths.
 @MainActor
 private final class LightmarkUpdateDriver: SPUStandardUserDriver {
     weak var owner: AppUpdates?
     private var pendingReply: ((SPUUserUpdateChoice) -> Void)?
-    private var offeredVersion: String?
     private var offeredBuild: String?
-    private var presenting = false
     private var inlineFlow = false
     private var cancellation: (() -> Void)?
     private var installReply: ((SPUUserUpdateChoice) -> Void)?
@@ -71,6 +86,7 @@ private final class LightmarkUpdateDriver: SPUStandardUserDriver {
     var hasPendingOffer: Bool { pendingReply != nil }
 
     override func showUpdateFound(with appcastItem: SUAppcastItem, state: SPUUserUpdateState, reply: @escaping (SPUUserUpdateChoice) -> Void) {
+        owner?.isChecking = false
         // Informational releases retain Sparkle’s standard presentation.
         guard !appcastItem.isInformationOnlyUpdate else {
             super.showUpdateFound(with: appcastItem, state: state, reply: reply)
@@ -78,40 +94,18 @@ private final class LightmarkUpdateDriver: SPUStandardUserDriver {
         }
         super.dismissUpdateInstallation()
         offeredBuild = appcastItem.versionString
-        offeredVersion = appcastItem.displayVersionString
         pendingReply = reply
-        owner?.availableVersion = offeredVersion
+        owner?.availableVersion = appcastItem.displayVersionString
         if state.stage != .notDownloaded {
             inlineFlow = true
             owner?.headerState = .ready
-        } else if state.userInitiated { presentOffer() }
+        } else {
+            owner?.headerState = .available
+        }
     }
 
-    func presentOffer() {
-        guard !presenting, pendingReply != nil, let version = offeredVersion else { return }
-        presenting = true
-        let current = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? ""
-        let alert = NSAlert()
-        alert.messageText = "Lightmark \(version) is available"
-        alert.informativeText = "You’re currently using version \(current).\nWould you like to download the latest version?"
-        alert.addButton(withTitle: "Download Update")
-        alert.addButton(withTitle: "Not Now")
-        let link = NSButton(title: "Changelog", target: self, action: #selector(openChangelog))
-        link.isBordered = false
-        link.font = .systemFont(ofSize: 11)
-        link.contentTintColor = .secondaryLabelColor
-        link.frame = NSRect(x: 0, y: 0, width: 115, height: 22)
-        alert.accessoryView = link
-        let response = alert.runModal()
-        let reply = pendingReply
-        if response == .alertFirstButtonReturn, let build = offeredBuild {
-            UserDefaults.standard.set(build, forKey: "pendingUpdateBuild")
-        }
-        pendingReply = nil
-        offeredVersion = nil
-        owner?.availableVersion = nil
-        presenting = false
-        reply?(response == .alertFirstButtonReturn ? .install : .dismiss)
+    override func showUserInitiatedUpdateCheck(cancellation: @escaping () -> Void) {
+        owner?.isChecking = true
     }
 
     func activateInline() {
@@ -189,44 +183,33 @@ private final class LightmarkUpdateDriver: SPUStandardUserDriver {
     }
 
     override func showUpdateNotFoundWithError(_ error: Error, acknowledgement: @escaping () -> Void) {
+        owner?.isChecking = false
         let reason = (error as NSError).userInfo[SPUNoUpdateFoundReasonKey] as? NSNumber
-        guard let reason, reason.int32Value == SPUNoUpdateFoundReason.onLatestVersion.rawValue else {
-            super.showUpdateNotFoundWithError(error, acknowledgement: acknowledgement)
-            return
-        }
-        super.dismissUpdateInstallation()
-        let current = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? ""
-        let alert = NSAlert()
-        alert.messageText = "You’re up to date"
-        alert.informativeText = "Lightmark \(current) is the latest version."
-        alert.addButton(withTitle: "OK")
-        let link = NSButton(title: "Changelog", target: self, action: #selector(openChangelog))
-        link.isBordered = false
-        link.font = .systemFont(ofSize: 11)
-        link.contentTintColor = .secondaryLabelColor
-        link.frame = NSRect(x: 0, y: 0, width: 90, height: 22)
-        alert.accessoryView = link
-        alert.runModal()
+        let latest = reason?.int32Value == SPUNoUpdateFoundReason.onLatestVersion.rawValue
+        owner?.showFeedback(latest ? "You’re up to date" : "No update available")
         acknowledgement()
     }
 
-    @objc private func openChangelog() {
-        NSWorkspace.shared.open(URL(string: "https://trylightmark.com/changelog/")!)
+    override func showUpdaterError(_ error: Error, acknowledgement: @escaping () -> Void) {
+        let wasVisible = owner?.isChecking == true || inlineFlow
+        owner?.isChecking = false
+        if wasVisible { owner?.showFeedback("Couldn’t update. Try again later") }
+        acknowledgement()
     }
 
     override func showUpdateInFocus() {
-        if hasPendingOffer && !inlineFlow { presentOffer() } else if !inlineFlow { super.showUpdateInFocus() }
+        if hasPendingOffer { owner?.showFeedback("Update available") }
     }
 
     override func dismissUpdateInstallation() {
         pendingReply = nil
-        offeredVersion = nil
         offeredBuild = nil
         inlineFlow = false
         cancellation = nil
         installReply = nil
         retryTermination = nil
         owner?.availableVersion = nil
+        owner?.isChecking = false
         owner?.headerState = .available
         owner?.downloadProgress = nil
         super.dismissUpdateInstallation()
@@ -237,7 +220,7 @@ struct CheckForUpdatesButton: View {
     @ObservedObject private var updates = AppUpdates.shared
     var body: some View {
         Button("Check for Updates…") { updates.check() }
-            .disabled(!updates.canCheck && updates.availableVersion == nil)
+            .disabled(updates.isChecking || (!updates.canCheck && updates.headerState != .available) || (!updates.canCheck && updates.availableVersion == nil))
     }
 }
 
@@ -245,7 +228,8 @@ struct HeaderUpdateButton: View {
     var showsLabel = false
     @ObservedObject private var updates = AppUpdates.shared
     private var label: String {
-        switch updates.headerState {
+        if updates.isChecking { return "Checking…" }
+        return switch updates.headerState {
         case .available: "Update available"
         case .downloading: "Downloading…"
         case .preparing: "Preparing…"
@@ -254,10 +238,10 @@ struct HeaderUpdateButton: View {
         }
     }
     var body: some View {
-        if let version = updates.availableVersion {
+        if updates.isChecking || updates.availableVersion != nil {
             Button(action: updates.activateHeader) {
                 HStack(spacing: 6) {
-                    if updates.headerState == .downloading || updates.headerState == .preparing {
+                    if updates.isChecking || updates.headerState == .downloading || updates.headerState == .preparing {
                         ProgressView(value: updates.downloadProgress)
                             .progressViewStyle(.circular)
                             .controlSize(.small)
@@ -278,14 +262,14 @@ struct HeaderUpdateButton: View {
                 .contentShape(RoundedRectangle(cornerRadius: 7))
             }
             .buttonStyle(.borderless)
-            .disabled(updates.headerState == .downloading || updates.headerState == .preparing || updates.headerState == .restarting)
+            .disabled(updates.isChecking || updates.headerState == .downloading || updates.headerState == .preparing || updates.headerState == .restarting)
             .contextMenu {
                 if updates.headerState == .downloading {
                     Button("Cancel Download", action: updates.cancelDownload)
                 }
             }
-            .help("\(label) · Lightmark \(version)")
-            .accessibilityLabel("\(label) · Lightmark \(version)")
+            .help(label)
+            .accessibilityLabel(label)
         }
     }
 }

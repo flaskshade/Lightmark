@@ -400,7 +400,7 @@ private struct DocumentContentView: View {
             GeometryReader { header in
                 let showsUpdateLabel = header.size.width >= 1100 &&
                     (!showsDocumentTabs || header.size.width - 270 >= CGFloat(tabs.items.count) * 180)
-                let updateInset: CGFloat = appUpdates.availableVersion == nil ? 0 : (showsUpdateLabel ? 154 : 36)
+                let updateInset: CGFloat = appUpdates.availableVersion == nil && !appUpdates.isChecking ? 0 : (showsUpdateLabel ? 154 : 36)
             ZStack {
                 DocumentTabBar(tabs: tabs, fallbackTitle: documentTitle)
                     .padding(.trailing, 108 + updateInset)
@@ -442,8 +442,8 @@ private struct DocumentContentView: View {
         }
         .ignoresSafeArea(edges: .top)
         .overlay(alignment: .bottom) {
-            if showFeedback || appUpdates.showUpdateComplete {
-                ModeFeedbackHUD(isEditing: isEditing, updateComplete: appUpdates.showUpdateComplete)
+            if showFeedback || appUpdates.showUpdateComplete || appUpdates.feedback != nil {
+                ModeFeedbackHUD(isEditing: isEditing, updateComplete: appUpdates.showUpdateComplete, feedback: appUpdates.feedback)
                     .padding(.bottom, 12)
                     .transition(hudTransition)
                     .allowsHitTesting(false)
@@ -451,6 +451,7 @@ private struct DocumentContentView: View {
             }
         }
         .animation(reduceHeaderMotion ? nil : .easeInOut(duration: 0.18), value: appUpdates.showUpdateComplete)
+        .animation(reduceHeaderMotion ? nil : .easeInOut(duration: 0.18), value: appUpdates.feedback)
         .overlay(alignment: .bottom) {
             if showCopyFeedback {
                 ActionFeedbackHUD(title: "Copied All Text", systemImage: "doc.on.doc.fill", shortcut: "⌘⇧C")
@@ -1028,6 +1029,7 @@ struct EditModeButton: View {
 private struct ModeFeedbackHUD: View {
     let isEditing: Bool
     var updateComplete = false
+    var feedback: String?
 
     var body: some View {
         HStack(spacing: 7.5) {
@@ -1037,8 +1039,8 @@ private struct ModeFeedbackHUD: View {
                     .fill(ReadingStyle.accent.opacity(0.14))
                     .frame(width: 22, height: 22)
 
-                if updateComplete {
-                    Image(systemName: "checkmark")
+                if updateComplete || feedback != nil {
+                    Image(systemName: feedback?.hasPrefix("Couldn’t") == true ? "exclamationmark" : "checkmark")
                         .font(.system(size: 11, weight: .semibold))
                         .foregroundStyle(ReadingStyle.accent)
                 } else if isEditing {
@@ -1062,7 +1064,7 @@ private struct ModeFeedbackHUD: View {
             .animation(.spring(response: 0.12, dampingFraction: 0.78), value: isEditing)
 
             // Mode title
-            Text(updateComplete ? "Update complete" : (isEditing ? "Editing Source" : "Reading View"))
+            Text(feedback ?? (updateComplete ? "Update complete" : (isEditing ? "Editing Source" : "Reading View")))
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(Color.primary)
                 .contentTransition(.numericText())
