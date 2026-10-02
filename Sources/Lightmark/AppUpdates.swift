@@ -309,7 +309,6 @@ struct SettingsUpdateSection: View {
                     }
                     Text(status)
                 }
-                .frame(maxWidth: .infinity)
             }
             .buttonStyle(UpdateSettingsButtonStyle())
             .disabled(updates.isChecking || updates.availableVersion != nil || !updates.canCheck)
@@ -351,7 +350,7 @@ private struct UpdateSettingsButtonStyle: ButtonStyle {
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .padding(.horizontal, 12)
+            .padding(.horizontal, 10)
             .padding(.vertical, 8)
             .foregroundStyle(prominent ? Color.white : Color.primary)
             .background {
