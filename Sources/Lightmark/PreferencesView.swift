@@ -701,7 +701,7 @@ struct PreferencesView: View {
                 .padding(.top, 8)
 
             HStack(spacing: 16) {
-                AboutLink("GitHub", destination: URL(string: "https://github.com/roycim/Lightmark")!)
+                AboutLink("GitHub", destination: URL(string: "https://github.com/flaskshade/Lightmark")!)
                 AboutLink("Changelog", destination: URL(string: "https://trylightmark.com/changelog/")!)
             }
             .font(.subheadline)
