@@ -396,10 +396,14 @@ private struct DocumentContentView: View {
                     .transaction { $0.animation = nil }
             }
 
-            // Top bar header overlay
+            // Keep label visibility and reserved header space driven by one size.
+            GeometryReader { header in
+                let showsUpdateLabel = header.size.width >= 1100 &&
+                    (!showsDocumentTabs || header.size.width - 270 >= CGFloat(tabs.items.count) * 180)
+                let updateInset: CGFloat = appUpdates.availableVersion == nil ? 0 : (showsUpdateLabel ? 154 : 36)
             ZStack {
                 DocumentTabBar(tabs: tabs, fallbackTitle: documentTitle)
-                    .padding(.trailing, appUpdates.availableVersion == nil ? 108 : 144)
+                    .padding(.trailing, 108 + updateInset)
                     .opacity(showsDocumentTabs ? 1 : 0)
                     .allowsHitTesting(showsDocumentTabs)
                     .accessibilityHidden(!showsDocumentTabs)
@@ -411,7 +415,7 @@ private struct DocumentContentView: View {
                     window: documentWindow
                 )
                 .frame(maxWidth: .infinity)
-                .padding(.horizontal, appUpdates.availableVersion == nil ? 100 : 140)
+                .padding(.horizontal, 100 + updateInset)
                 .opacity((showsDocumentTabs || (isDefaultNoFileView && !isEditing)) ? 0 : 1)
                 .allowsHitTesting(!showsDocumentTabs && (!isDefaultNoFileView || isEditing))
                 .accessibilityHidden(showsDocumentTabs || (isDefaultNoFileView && !isEditing))
@@ -421,7 +425,7 @@ private struct DocumentContentView: View {
             .transaction { if $0.disablesAnimations { $0.animation = nil } }
             .overlay(alignment: .trailing) {
                 HStack(spacing: 4) {
-                    HeaderUpdateButton()
+                    HeaderUpdateButton(showsLabel: showsUpdateLabel)
                     if !isDefaultNoFileView || isEditing {
                         EditModeButton(
                             isEditing: isEditing,
@@ -433,6 +437,8 @@ private struct DocumentContentView: View {
                 }
                 .padding(.trailing, 14)
             }
+            }
+            .frame(height: 52)
         }
         .ignoresSafeArea(edges: .top)
         .overlay(alignment: .bottom) {
