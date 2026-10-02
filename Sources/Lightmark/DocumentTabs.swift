@@ -167,7 +167,7 @@ final class DocumentTabs: NSObject, ObservableObject {
                 if document.windowControllers.isEmpty { document.makeWindowControllers() }
                 let mode = WindowOpeningMode.from(stored: UserDefaults.standard.string(forKey: "windowOpeningMode") ?? "windows")
                 for controller in document.windowControllers {
-                    controller.shouldCascadeWindows = mode != .tabbed
+                    controller.shouldCascadeWindows = false
                 }
                 if let window = document.windowControllers.first?.window {
                     window.contentView?.layoutSubtreeIfNeeded()

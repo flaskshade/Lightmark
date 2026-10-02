@@ -92,7 +92,13 @@ final class NativeMarkdownDocument: NSDocument, ObservableObject {
         window.titleVisibility = .hidden
         window.titlebarAppearsTransparent = true
         window.center()
+        if let previous = NSApp.orderedWindows.first(where: {
+            $0 is MarkdownWindow && $0.isVisible && !$0.isMiniaturized && $0.isOnActiveSpace
+        }) {
+            window.cascadeTopLeft(from: NSPoint(x: previous.frame.minX, y: previous.frame.maxY))
+        }
         let controller = MarkdownWindowController(window: window)
+        controller.shouldCascadeWindows = false
         addWindowController(controller)
         window.delegate = controller
         window.contentView = NSHostingView(rootView: NativeDocumentContent(document: self))
